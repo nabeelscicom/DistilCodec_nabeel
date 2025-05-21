@@ -12,8 +12,7 @@ import numpy as np
 import soundfile as sf
 import torch.amp
 from tqdm import tqdm
-
-from utils import AttrDict
+import librosa
 
 from models import load_wav
 from models import HiFiGANGenerator
@@ -23,10 +22,10 @@ from models import LogMelSpectrogram
 from vector_quantization import DownsampleGRVQ, GRVQResult
 
 
-class AudioBPE(nn.Module):
+class AttrDict(dict):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
+        super(AttrDict, self).__init__(*args, **kwargs)
+        self.__dict__ = self
 
 class DistilCodec(nn.Module):
     def __init__(
@@ -104,6 +103,62 @@ class DistilCodec(nn.Module):
         codec.move_to_cuda()
         
         return codec
+    
+    def preprocess_raw_audio_batch(self, audio_data_info_list: list[str]):
+        audio_list = []
+        audio_lengths = []
+        n_hop_lengths = []
+        gen_audio_time_lengths = []
+        new_files = []
+        max_length = total_time = 0
+        for p in audio_data_info_list:
+            audio, sampling_rate = p
+            # try:
+            #    audio, sampling_rate = load_wav(p, sr=self.spec_config.sampling_rate)
+            #except Exception as e:
+            #    print(f"Error on audio: {p}")
+            #    audio = np.random.normal(size=(self.spec_config.sampling_rate, )) * 0.05
+            #    sampling_rate = self.spec_config.sampling_rate
+            if sampling_rate != self.spec_config.sampling_rate:
+                audio = librosa.resample(audio, orig_sr=sampling_rate, target_sr=self.spec_config.sampling_rate)
+                sampling_rate = self.spec_config.sampling_rate
+                #raise ValueError("{} SR doesn't match target {} SR".format(sampling_rate, 
+                #                                                           self.spec_config.sampling_rate))
+            
+            audio = torch.FloatTensor(audio)
+            audio = audio.unsqueeze(0)
+            if audio.shape[0] > 1:
+                audio = audio.mean(dim=0, keepdim=True)
+             
+            total_time += audio.shape[1] / self.spec_config.sampling_rate
+            max_length = max(audio.shape[1], max_length)
+            n_hop_length = audio.shape[1] // (self.hop_size * self.ds_factor)
+            gen_time_length = (audio.shape[1] // self.hop_size) * (self.hop_size + 1)
+            
+            audio_list.append(audio)
+            audio_lengths.append(audio.shape[1])
+            n_hop_lengths.append(n_hop_length)
+            gen_audio_time_lengths.append(gen_time_length)
+            new_files.append(p)
+        
+        if self.is_debug:
+            print(f'Max lengths: {max_length}')
+            print(f'Total time: {total_time:.2f}s')
+        
+        # Pad to max length
+        for i, audio in enumerate(audio_list):
+            audio_list[i] = torch.nn.functional.pad(audio, 
+                                                    (1, max_length - audio_lengths[i]), 
+                                                    "constant")
+        audios = torch.stack(audio_list, dim=0).to(self.device)
+        mel_specs = self.spec_transform(audios).to(self.device)
+        
+        if self.is_debug:
+            print(f'Audios shape: {audios.shape}')
+            for rl, nhl in zip(audio_lengths, gen_audio_time_lengths):
+                print(f'Real length: {rl}, NHop length: {nhl}')
+
+        return audios, mel_specs, gen_audio_time_lengths, n_hop_lengths
     
     def preprocess_audio_batch(self, audio_pathes: list[str]):
         audio_list = []
@@ -215,6 +270,11 @@ class DistilCodec(nn.Module):
                 "content": "<|cot_end|>",
                 "description": "Cot end descriptor",
                 'absolute_token_id': code_index_diff + 8
+            },
+            str(code_index_diff + 7): {
+                "content": "<|unused600|>",
+                "description": "unused end descriptor",
+                'absolute_token_id': code_index_diff + 9
             }
         }
 
@@ -260,7 +320,6 @@ class DistilCodec(nn.Module):
                             saved_path='/cognitive_comp/wangrui/data/qwen_models/qwen2.5-7b-ate',
                             is_test: bool = True,
                             is_random_init: bool = False,
-                            is_llm_mean: bool = True,
                             audio_scale_factor: float = 100.0):
         from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -296,11 +355,7 @@ class DistilCodec(nn.Module):
         new_embeddings = torch.nn.Embedding(new_embedding_number, embd_dim, dtype=torch.bfloat16)
         new_embeddings.weight.data[:n_text_tokens, :] = text_embeddings.weight.data
         new_audio_embd = mean_text_embedding.repeat(audio_embeddings.shape[0], 1)
-        if is_llm_mean:
-            audio_init_embd = new_audio_embd
-        else:
-            audio_init_embd = norm_audio_embedding
-        new_embeddings.weight.data[n_text_tokens: n_text_tokens+n_audio_tokens, :] = audio_init_embd.bfloat16() if not is_random_init else (torch.zeros_like(audio_embeddings, dtype=torch.bfloat16) + 0.00)
+        new_embeddings.weight.data[n_text_tokens: n_text_tokens+n_audio_tokens, :] = norm_audio_embedding.bfloat16() if not is_random_init else (torch.zeros_like(audio_embeddings, dtype=torch.bfloat16) + 0.00)
         expand_mean_text = mean_text_embedding.repeat(special_embeddings.weight.data.shape[0], 1)
         new_embeddings.weight.data[n_text_tokens+n_audio_tokens:, :] = expand_mean_text if not is_random_init else (torch.zeros_like(special_embeddings.weight.data, dtype=torch.bfloat16) + 0.00)
         print('Set text-audio embedding to LLM...')
@@ -315,11 +370,7 @@ class DistilCodec(nn.Module):
         new_lm_head.weight.data[:n_text_tokens, :] = lm_head.weight.data[:n_text_tokens, :]
         mean_lm_head = norm_audio_embedding.mean(dim=0)
         expand_audio_head = mean_lm_head.repeat(audio_embeddings.shape[0], 1)
-        if is_llm_mean:
-            audio_head_init = expand_audio_head
-        else:
-            audio_head_init = norm_audio_embedding
-        new_lm_head.weight.data[n_text_tokens: n_text_tokens+n_audio_tokens, :] = audio_head_init.bfloat16() if not is_random_init else (torch.zeros_like(audio_embeddings, dtype=torch.bfloat16) + 0.00)
+        new_lm_head.weight.data[n_text_tokens: n_text_tokens+n_audio_tokens, :] = norm_audio_embedding.bfloat16() if not is_random_init else (torch.zeros_like(audio_embeddings, dtype=torch.bfloat16) + 0.00)
         mean_special_head = lm_head.weight.data.mean(dim=0)
         expand_mean_head = mean_special_head.repeat(special_embeddings.weight.data.shape[0], 1)
         new_lm_head.weight.data[n_text_tokens+n_audio_tokens:, :] = expand_mean_head if not is_random_init else (torch.zeros_like(special_embeddings.weight.data, dtype=torch.bfloat16) + 0.00)
@@ -509,8 +560,11 @@ class DistilCodec(nn.Module):
 
         return new_codes
 
-    def encode(self, audio_pathes: list, enable_bfloat16: bool = False) -> GRVQResult:
-        _, mel_specs, gen_time_lengths, n_hop_lengths = self.preprocess_audio_batch(audio_pathes=audio_pathes)
+    def encode(self, audio_pathes: list, enable_bfloat16: bool = False, raw_audio=False) -> GRVQResult:
+        if raw_audio:
+            _, mel_specs, gen_time_lengths, n_hop_lengths = self.preprocess_raw_audio_batch(audio_pathes)
+        else:
+            _, mel_specs, gen_time_lengths, n_hop_lengths = self.preprocess_audio_batch(audio_pathes=audio_pathes)
         with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=enable_bfloat16):
             encoded_mel = self.encoder(mel_specs)
             if self.is_debug:
@@ -543,18 +597,20 @@ class DistilCodec(nn.Module):
         return y_g_hat
     
     def decode_from_codes(self, codes: list, minus_token_offset: bool = True, enable_bfloat16: bool = False) -> torch.Tensor:
+
         if minus_token_offset:
+            for c in codes:
+                if c - self.tokens_id_offset < 0:
+                    print(f'c is :{c}', flush=True)
             codes = [c - self.tokens_id_offset for c in codes]
-            print(codes)
         codes = torch.tensor(codes, dtype=torch.int64).unsqueeze(0).unsqueeze(0).unsqueeze(-1).cuda()
-        print(codes.size())
         with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=enable_bfloat16):
             re_features = self.quantizer.decode(indices=codes)
             y_g_hat = self.generator(re_features)
 
         return y_g_hat
     
-    def save_wav(self, audio_gen_batch: torch.Tensor, nhop_lengths, audio_names=None, save_path='./log'):
+    def save_wav(self, audio_gen_batch: torch.Tensor, nhop_lengths, audio_names=None, save_path='./log', name_tag='default'):
         if audio_names is not None and len(audio_names) == len(nhop_lengths):
             use_org_name = True
         else:
@@ -563,176 +619,58 @@ class DistilCodec(nn.Module):
         gen_audio_pathes = []
         for i in range(audio_gen_batch.shape[0]):
             audio_gen = audio_gen_batch[i, 0, :nhop_lengths[i]].float().cpu().numpy()
-            audio_name = f'output{i}.wav' if not use_org_name else f'{audio_names[i]}'
+            audio_name = f'{name_tag}.wav' if not use_org_name else f'{audio_names[i]}'
             audio_path_t = os.path.join(save_path, audio_name)
             gen_audio_pathes.append(audio_path_t)
             sf.write(audio_path_t, audio_gen, self.spec_config.sampling_rate)
             
         return gen_audio_pathes
     
-
-def tokenizer_expanding_qwen():
-    import os
-
-    load_steps = 151000
-    codec_date = '0927'
-    codec = DistilCodec.from_pretrained(config_path=f'/cognitive_comp/wangrui/codes/audio_codec/scripts/workspace/{codec_date}_24k_3s/model_config.json',
-                                       model_path=f'/cognitive_comp/wangrui/data/lam{codec_date}/ckpt',
-                                       load_steps=load_steps,
-                                       is_debug=False).eval()
-    divided_factor = 50.0
-    llm_path='/cognitive_comp/sunqianguo/pretrained/open_source/qwen/Qwen2.5-7B'
-    llm_name = os.path.split(llm_path)[-1]
-    saved_path = f'/cognitive_comp/wangrui/data/qwen_models/{llm_name}-Codec{codec_date}-S{load_steps}-AEdivided{int(divided_factor)}'
-    codec.llm_token_expanding(saved_path=saved_path,
-                              llm_path=llm_path,
-                              is_random_init=False,
-                              audio_scale_factor=divided_factor)
-
-
-def reset_codebook():
-    codec = DistilCodec.from_pretrained(config_path='/cognitive_comp/wangrui/codes/audio_codec/scripts/workspace/0930_24k_3s/model_config.json',
-                                       model_path='/cognitive_comp/wangrui/data/lam0930/ckpt',
-                                       load_steps=181000,
-                                       is_debug=False).eval()
-    codec.reset_codebook(unique_indice='/cognitive_comp/wangrui/data/lam0930/evaluation/unique_indices_182000.json',
-                         save_path='/cognitive_comp/wangrui/data/lam0930/reset_ckpt',
-                         topK=1)
-
-
-def codec_test():
-    audio_pathes = ["/cognitive_comp/common_data/audio/output/24k_data/dev/stage3/part22/7330f158-004a-4a52-8f55-bdd8462d335d_0174.wav",
-                    "/cognitive_comp/common_data/audio/output/dev/df85d640-46bf-4a3d-b642-9ae558fc9966_0012.wav"]
-    model_config = "/cognitive_comp/wangrui/codes/audio_codec/scripts/workspace/0827_24k_3s/model_config.json"
-    ckpt_config = "/cognitive_comp/wangrui/data/audio_codec_ckpts/0821"
-    codec = DistilCodec.from_pretrained(config_path=model_config,
-                                       model_path=ckpt_config,
-                                       is_debug=False).eval()
-    codec.preprocess_audio_batch(audio_pathes=audio_pathes)
-    with torch.no_grad():
-        quantized_ret, nhop_lengths, _ = codec.encode(audio_pathes)
-        print(f'Quantized feature shape: {quantized_ret.quantized.shape}')
-        print(f'Quantized feature shape: {quantized_ret.quantized_fup.shape}')
-        print(f'Quantized Flatten Codes: {len(quantized_ret.codes_list[0])}')
-        y_gen = codec.decode_from_features(quantized_features=quantized_ret.quantized)
-        print(y_gen.shape)
-        #codec.save_wav(audio_gen_batch=y_gen,
-        #               nhop_lengths=nhop_lengths)
-        codec.save_wav(audio_gen_batch=y_gen,
-                       nhop_lengths=nhop_lengths)
-        
-
-def codec_test():
-    audio_pathes = ["/cognitive_comp/common_data/audio/output/24k_data/dev/stage3/part22/7330f158-004a-4a52-8f55-bdd8462d335d_0174.wav",
-                    "/cognitive_comp/common_data/audio/output/dev/df85d640-46bf-4a3d-b642-9ae558fc9966_0012.wav"]
-    model_config = "/cognitive_comp/wangrui/codes/audio_codec/scripts/workspace/0827_24k_3s/model_config.json"
-    ckpt_config = "/cognitive_comp/wangrui/data/audio_codec_ckpts/0821"
-    codec = DistilCodec.from_pretrained(config_path=model_config,
-                                       model_path=ckpt_config,
-                                       is_debug=False).eval()
-    codec.preprocess_audio_batch(audio_pathes=audio_pathes)
-    with torch.no_grad():
-        quantized_ret, nhop_lengths, _ = codec.encode(audio_pathes)
-        print(f'Quantized feature shape: {quantized_ret.quantized.shape}')
-        print(f'Quantized feature shape: {quantized_ret.quantized_fup.shape}')
-        print(f'Quantized Flatten Codes: {len(quantized_ret.codes_list[0])}')
-        y_gen = codec.decode_from_features(quantized_features=quantized_ret.quantized)
-        print(y_gen.shape)
-        #codec.save_wav(audio_gen_batch=y_gen,
-        #               nhop_lengths=nhop_lengths)
-        codec.save_wav(audio_gen_batch=y_gen,
-                       nhop_lengths=nhop_lengths)
-        
-
-def codec_test2():
-    audio_pathes = ["/cognitive_comp/common_data/audio/output/dev/df85d640-46bf-4a3d-b642-9ae558fc9966_0012.wav"]
-    model_config = "/cognitive_comp/wangrui/codes/audio_codec/scripts/workspace/0927_24k_3s/model_config.json"
-    ckpt_config = "/cognitive_comp/wangrui/data/lam0927/ckpt"
-    codec = DistilCodec.from_pretrained(config_path=model_config,
-                                       model_path=ckpt_config,
-                                       load_steps=204000,
-                                       use_generator=True,
-                                       is_debug=False).eval()
-    codec.preprocess_audio_batch(audio_pathes=audio_pathes)
-    with torch.no_grad():
-        quantized_ret, nhop_lengths, _ = codec.encode(audio_pathes)
-        print(f'Quantized feature shape: {quantized_ret.quantized.shape}')
-        print(f'Quantized feature shape: {quantized_ret.quantized_fup.shape}')
-        print(f'Quantized Flatten Codes: {len(quantized_ret.codes_list[0])}')
-        code_list = quantized_ret.codes.squeeze().cpu().tolist()
-        print(code_list)
-        y_gen = codec.decode_from_codes(codes=code_list)
-        print(y_gen.shape)
-        codec.save_wav(audio_gen_batch=y_gen,
-                       nhop_lengths=nhop_lengths)
-        
-
-def codec_test3():
-    from transformers import AutoTokenizer
-    audio_pathes = './log/codes.json'
-    model_config = "/cognitive_comp/wangrui/codes/audio_codec/scripts/workspace/0927_24k_3s/model_config.json"
-    ckpt_config = "/cognitive_comp/wangrui/data/lam0927/ckpt"
-    codec = DistilCodec.from_pretrained(config_path=model_config,
-                                       model_path=ckpt_config,
-                                       load_steps=204000,
-                                       use_generator=True,
-                                       is_debug=False).eval()
-    with torch.no_grad():
-        with open(audio_pathes, 'r') as f:
-            codes = json.load(f)['audio_token']
-            codes = []
-        code_in_str = '<|g0r0_157815|><|g0r0_163862|><|g0r0_160034|><|g0r0_155890|><|g0r0_155834|><|g0r0_159785|><|g0r0_167700|><|g0r0_158844|><|g0r0_168475|><|g0r0_156415|><|g0r0_155236|><|g0r0_154583|><|g0r0_154007|><|g0r0_181990|><|g0r0_170305|><|g0r0_156821|><|g0r0_170216|><|g0r0_159466|><|g0r0_174469|><|g0r0_170707|><|g0r0_174337|><|g0r0_180287|><|g0r0_175087|><|g0r0_180991|><|g0r0_177685|><|g0r0_174908|><|g0r0_158248|><|g0r0_175281|><|g0r0_157311|><|g0r0_184140|><|g0r0_159974|><|g0r0_165979|><|g0r0_156815|><|g0r0_157850|><|g0r0_155785|><|g0r0_184046|><|g0r0_167890|><|g0r0_163432|><|g0r0_173041|><|g0r0_156178|><|g0r0_168165|><|g0r0_167469|><|g0r0_174342|><|g0r0_153290|><|g0r0_172394|><|g0r0_173658|><|g0r0_171057|><|g0r0_162436|><|g0r0_167485|><|g0r0_168098|><|g0r0_178756|><|g0r0_163534|><|g0r0_183447|><|g0r0_173772|><|g0r0_163517|><|g0r0_165189|><|g0r0_159811|><|g0r0_156508|><|g0r0_164764|><|g0r0_164792|><|g0r0_176297|><|g0r0_153692|><|g0r0_180491|><|g0r0_161067|><|g0r0_182762|><|g0r0_165866|><|g0r0_172214|><|g0r0_180582|><|g0r0_179811|><|g0r0_167920|><|g0r0_167855|><|g0r0_182100|><|g0r0_181488|><|g0r0_170258|><|g0r0_161049|><|g0r0_161285|><|g0r0_159437|><|g0r0_177028|><|g0r0_183933|><|g0r0_178215|><|g0r0_155778|><|g0r0_166534|><|g0r0_155137|><|g0r0_172690|><|g0r0_171536|><|g0r0_174361|><|g0r0_169222|><|g0r0_183609|><|g0r0_166138|><|g0r0_174602|><|g0r0_166426|><|g0r0_180847|><|g0r0_157100|><|g0r0_171762|><|g0r0_178848|><|g0r0_164785|><|g0r0_154833|><|g0r0_160962|><|g0r0_175667|><|g0r0_156849|><|g0r0_171932|><|g0r0_171201|><|g0r0_170609|><|g0r0_160494|><|g0r0_174761|><|g0r0_168980|><|g0r0_154129|><|g0r0_166259|><|g0r0_180191|><|g0r0_168171|><|g0r0_152186|><|g0r0_176752|><|g0r0_170297|><|g0r0_180590|><|g0r0_183165|><|g0r0_163407|><|g0r0_180708|><|g0r0_154321|><|g0r0_161279|><|g0r0_158274|><|g0r0_162719|><|g0r0_160263|><|g0r0_160202|><|g0r0_180274|><|g0r0_156694|><|g0r0_154725|><|g0r0_164957|><|g0r0_166550|><|g0r0_182433|><|g0r0_170488|><|g0r0_158783|><|g0r0_164724|><|g0r0_172897|><|g0r0_164679|><|g0r0_184380|><|g0r0_166021|><|g0r0_168697|><|g0r0_171166|><|g0r0_162009|><|g0r0_154844|><|g0r0_155692|><|g0r0_171710|><|g0r0_165934|><|g0r0_158553|><|g0r0_169979|><|g0r0_179784|><|g0r0_184472|><|g0r0_169085|><|g0r0_171824|><|g0r0_162685|><|g0r0_164228|><|g0r0_167320|><|g0r0_169824|><|g0r0_180333|><|g0r0_153021|><|g0r0_177718|><|g0r0_158474|><|g0r0_159715|><|g0r0_175196|><|g0r0_183049|><|g0r0_170015|><|g0r0_156741|><|g0r0_167391|><|g0r0_156832|><|g0r0_183303|><|g0r0_168916|><|g0r0_164926|><|g0r0_158492|><|g0r0_171096|><|g0r0_179249|><|g0r0_162821|><|g0r0_152531|><|g0r0_171023|><|g0r0_177592|><|g0r0_177592|><|g0r0_156955|><|g0r0_171849|><|g0r0_168435|><|g0r0_157631|><|g0r0_169760|><|g0r0_162991|><|g0r0_165724|><|g0r0_176326|><|g0r0_176516|><|g0r0_160725|><|g0r0_156989|><|g0r0_181405|><|g0r0_156289|><|g0r0_170554|><|g0r0_152159|><|g0r0_179445|><|g0r0_167485|><|g0r0_165265|><|g0r0_160757|><|g0r0_171661|><|g0r0_165689|><|g0r0_181916|><|g0r0_161402|><|g0r0_152478|><|g0r0_162282|><|g0r0_171179|><|g0r0_152115|><|g0r0_158391|><|g0r0_177792|><|g0r0_173494|><|g0r0_171926|><|g0r0_162289|><|g0r0_176522|><|g0r0_177153|><|g0r0_154567|><|g0r0_170274|><|g0r0_181977|><|g0r0_173329|><|g0r0_161432|><|g0r0_170095|><|g0r0_181625|><|g0r0_157642|><|g0r0_184806|><|g0r0_184320|><|g0r0_154581|><|g0r0_173329|><|g0r0_177710|><|g0r0_161300|><|g0r0_154113|><|g0r0_181551|><|g0r0_166982|><|g0r0_178772|><|g0r0_178995|><|g0r0_169957|><|g0r0_170095|><|g0r0_178983|><|g0r0_180523|><|g0r0_165182|><|g0r0_181252|><|g0r0_181875|><|g0r0_183609|><|g0r0_162388|><|g0r0_166426|><|g0r0_158416|>'
-        tokenizer_path = '/cognitive_comp/ccnl_common_data/wangrui/audio-text-models/qwen_models/Qwen2.5-7B-Codec0927-S204000-AEdivided100'
-        tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
-        codes = tokenizer.encode(code_in_str)
-        codes = [160696, 176479, 167509, 182039, 161377,
-        167063, 177177, 182323, 152499, 157423, 180893, 171956, 160442, 161683,
-        169686, 174873, 182036, 169422, 160996, 174559, 173466, 156135, 175562,
-        183604, 183865, 155058, 156207, 168959, 173597, 176299, 176777, 161744,
-        153346, 176133, 152279, 159455, 156060, 172142, 168620, 152279, 173761,
-        173761, 173753, 182900, 180904, 180622, 173906, 154597, 160453, 155027,
-        159700, 159941, 168436, 155054, 159247, 156958, 166093, 178492, 161658,
-        177739, 174587, 159711, 162600, 163470, 152568, 173069, 168287, 156776,
-        160596, 165953, 159482, 168551, 153442, 153439, 154692, 153958, 182714,
-        164985, 168344, 174487, 165089, 153739, 169078, 159495, 180241, 179662,
-        184622, 157898, 153597, 156110, 171521, 160239, 172469, 156290, 160379,
-        161498, 172053, 166119, 167627, 154127, 168048, 171665, 175638, 164250,
-        173540, 181507, 162071, 173087, 176121, 153264, 183935, 170002, 180521,
-        182064, 171399, 181704, 171898, 168989, 156907, 182078, 153387, 182060,
-        163519, 172395, 158826, 167289, 177484, 158752, 177607, 155874, 183946,
-        152554, 158902, 153039, 174227, 174910, 177002, 181906, 183374, 176863,
-        173971, 152747, 179212, 165543, 155802, 181038, 167664, 164408, 159236,
-        155713, 173790, 177123, 163837, 167770, 171162, 172076, 164763, 162462,
-        171983, 171873, 163763, 174231, 176596, 161777, 159747, 159547, 155062,
-        156935, 171059, 174227, 170400, 166328, 175452, 154332, 179059, 171634,
-        158740, 164901, 157470, 165322, 182078, 160337, 159765, 154431, 184325,
-        163182, 174745, 173688, 180674, 173558, 164364, 177314, 166203, 180641,
-        165634, 153219, 158638, 163310, 175255, 180070, 154750, 153160, 163227,
-        166567, 155978, 175044, 159237, 174196, 159346, 164882, 156868, 170400,
-        180026, 172897, 175602, 160378, 165952, 158896, 160554, 167455, 166524,
-        169252, 152106, 179713, 172791, 179984, 156038, 162530, 176629, 176141,
-        179885, 161745, 182595, 171765, 161043, 159455, 178913, 155432, 174053,
-        175417, 160114, 160233, 156741, 170361, 178302, 152414, 169382, 168165,
-        178515, 153954, 179183, 153441, 178784, 153197, 161502, 173269, 177720,
-        178282, 168620, 158207, 177025, 175494, 176802, 165308, 165419, 157129,
-        168076, 169707, 157374, 174906, 163691, 160681, 184103, 178419, 175418,
-        170234, 163612, 165540, 169486, 184385, 171573, 179967, 152553, 164883,
-        166654, 175265, 152111, 176327, 182182, 174160, 168556, 156861, 167424,
-        152602, 177979, 181102, 165721, 172017, 161800, 155775, 152437, 160188,
-        153242, 164730, 172503, 154938, 170421, 171493, 167993, 172053, 155830,
-        152993, 153550, 162374, 156664, 156110, 152597, 156664, 168858, 180144,
-        170179, 157898, 169994, 162056, 160341, 162266, 152169, 162593, 156051,
-        178660, 175913, 162162, 173012, 177176, 178948, 155752, 158717, 165184,
-        159956, 174417, 167229, 175944, 155859, 166281, 171628, 182320, 182568,
-        155173, 164811, 154750, 167229, 184256, 161643, 175944, 158324, 163388,
-        178383, 161853, 162432, 163412, 153037, 162432, 168155, 171475, 170321,
-        163788, 169108, 176886, 168901, 160678, 160060, 173713, 161597, 180617,
-        173873, 178013, 175097, 165886]
-        y_gen = codec.decode_from_codes(codes=codes)
-        print(y_gen.shape)
-        codec.save_wav(audio_gen_batch=y_gen,
-                       nhop_lengths=[y_gen.shape[-1]])
     
+def load_and_resample_audio(file_path, target_sr, mono=True, limited=None):
+    """
+    读取说话人语音文件，修改采样率，并合并多声道（如果需要）。
 
-if __name__ == "__main__":
-    codec_test3()
+    :param file_path: 说话人语音文件的路径
+    :param target_sr: 目标采样率
+    :param mono: 是否将说话人语音转换为单声道（True）或保持多声道（False）
+    :return: 处理后的说话人语音信号和目标采样率
+    """
+    # 读取说话人语音文件
+    y, orig_sr = librosa.load(file_path, sr=None, mono=False)
+    audio_duration = len(y) / orig_sr
+    # 如果音频长度超过最大时长，随机截取一段音频
+    if limited is not None and audio_duration > limited and len(y) - int(orig_sr * limited) > 1000:
+        start = np.random.randint(0, len(y) - int(orig_sr * limited))
+        y = y[start:start + int(orig_sr * limited)]
+        # y = y[:int(limited * orig_sr)]
+
+    # 修改采样率
+    y_resampled = librosa.resample(y, orig_sr=orig_sr, target_sr=target_sr)
+
+    # 合并多声道（如果需要）
+    if mono and len(y_resampled.shape) > 1:
+        y_resampled = np.mean(y_resampled, axis=1, keepdims=True)
+    if len(y_resampled.shape) == 1:
+        y_resampled = np.expand_dims(y_resampled, axis=0)
+
+    return y_resampled, target_sr, audio_duration
+
+
+def decode_audio(codec: DistilCodec, audio_tsr, target_sr=24000, plus_offset: bool = True):
+    with torch.no_grad():
+        quantized_ret = codec.encode([[audio_tsr.tolist()[0], target_sr]], enable_bfloat16=True, raw_audio=True)[0]
+        if plus_offset:
+            audio_tokens = [code + codec.tokens_id_offset for code in quantized_ret.codes.squeeze().cpu().tolist()]
+        else:
+            audio_tokens = quantized_ret.codes.squeeze().cpu().tolist()
+        # print(f'Audio tokens: {audio_tokens}')
+
+    return audio_tokens
+
+
+def demo_for_generate_audio_codes(codec: DistilCodec, audio_path, target_sr=24000):
+    audio_tsr, _, _ = load_and_resample_audio(file_path=audio_path, target_sr=target_sr, limited=None)
+    audio_tokens = decode_audio(codec, audio_tsr=audio_tsr)
+    
+    return audio_tokens

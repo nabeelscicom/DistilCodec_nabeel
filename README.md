@@ -1,10 +1,10 @@
 # DistilCodec
-The Joint Laboratory of International Digital Economy Academy (IDEA) and Emdoor, in collaboration with Emdoor Information Technology Co., Ltd., has launched DistilCodec - A Single-Codebook Neural Audio Codec with 32768 codes trained on uniersal audio.
-
+The Joint Laboratory of International Digital Economy Academy (IDEA) and Emdoor, in collaboration with Emdoor Information Technology Co., Ltd., has launched DistilCodec - A Single-Codebook Neural Audio Codec (NAC) with 32768 codes trained on uniersal audio.
 
 
 [![arXiv](https://img.shields.io/badge/arXiv-Paper-<COLOR>.svg)](https://arxiv.org/abs/2408.16532)
 [![model](https://img.shields.io/badge/%F0%9F%A4%97%20DistilCodec-Models-blue)](https://huggingface.co/IDEA-Emdoor/DistilCodec-v1.0)
+
 
 # 🔥 News
 - *2025.05.27*: We release DistilCodec-v1.0 checkpoint on [huggingface](https://huggingface.co/IDEA-Emdoor/DistilCodec-v1.0).
@@ -12,9 +12,42 @@ The Joint Laboratory of International Digital Economy Academy (IDEA) and Emdoor,
 - *2025.05.22*: We release UniTTS and DistilCodec on [arxiv](https://arxiv.org/abs/2408.16532).
 
 ## Introduction of DistilCodec
-### Training Schema
+The foundational network architecture of DistilCodec adopts an Encoder-VQ-Decoder framework
+similar to that proposed in Soundstream. The encoder employs a ConvNeXt-V2 structure,
+while the vector quantization module implements the GRFVQ scheme. The decoder
+employs a ConvTranspose1d based architectural configuration similar to HiFiGAN. Detailed
+network specifications and layer configurations are provided in Appendix A.1 The training methodol-
+ogy of DistilCodec follows a similar approach to HiFiGAN, incorporating three types of
+discriminators: Multi-Period Discriminator (MPD), Multi-Scale Discriminator (MSD), and Multi-
+STFT Discriminator (MSFTFD). Here is the architecture of Distilcodec:
+![The Architecture of DistilCodec](./data/distilcodec_architecture.jpg)
 
-### Evaluation
+### Training Schema
+We have developed a novel distillation approach termed DMS (**D**istilling **M**ulti-Codebook NAC to **S**ingle-Codebook NAC) by enabling the Student NAC to inherit encoder and decoder parameters from the Teacher NAC. Based on DMS, we trained DistilCodec using universal audio datasets as training data, achieving a single codebook with a codebook size of 32,768 while maintaining codebook utilization approaching 100\%. Simultaneously, the DMS algorithm enables the dimension of the distilled Student NAC Codebook to be scaled beyond 2048. Leveraging this capability, we configured the codebook dimension to 3584, aligning with the word embedding dimension of QWen2.5-7B (3584), so we subsequently leveraged DistilCodec's codebook to initialize the audio embedding layer in [UniTTS](https://github.com/IDEA-Emdoor-Lab/UniTTS). Here is the psuedo code of DMS:
+#### Algorithm DMS: Distilling Multi-Codebook NAC to Single-Codebook NAC via parameter inheritance
+1. **Step 1:** Initializing *Teacher codec*:
+   $$
+   Teacher\_codec = Codec_{s1}(8, 4, 1024, 512, E^{scratch}_{param}, G^{scratch}_{param}, VQ^{scratch}_{param})
+   $$
+
+2. **Step 2:** *Teacher codec* training with DLF
+
+3. **Step 3:** Initializing *Student codec*:
+   $$
+   Student\_codec = Codec_{s2}(1, 1, 35768, 3584, E^{teacher}_{param}, G^{teacher}_{param}, VQ^{scratch}_{param})
+   $$
+
+4. **Step 4:** *Student codec* training with DLF
+
+5. **Output:** $DistilCodec = Student\_codec$
+
+下面是Teacher Codec和Student Codec的codebook参数设置，其中N-Residual表示残差层数、N-Group表示分组数、N-Codes/Codebook表示每个Codebook的Code数量、Dimension表示Codebook的维度。
+| Codec       | N-Residual | N-Group | N-Codes/Codebook | Dimension |
+|-------------|------------|---------|------------------|-----------|
+| Teacher-Codec | 8          | 4       | 1024             | 512       |
+| Student-Codec | 1          | 1       | 32768            | 3584      |
+
+### Evaluation and Demos
 The second row of the table demonstrates the codebook utilization and perplexity (PPL) of DistilCodec evaluated on LibriSpeech-Test-Clean. Given DistilCodec's capability to process universal audio, we have constructed an integrated test set comprising speech, audiobook, and music samples for evaluating codebook utilization and PPL in universal audio scenarios. As shown in the table, DistilCodec achieves near-optimal codebook utilization (approaching 100%) across both datasets, accompanied by notably high PPL values (the theoretical maximum PPL equals the codebook size, which is 32,768). These results substantiate DistilCodec's superior audio reconstruction capabilities in universal audio applications.
 | Dataset              | Codebook Usage(%)↑ | Codebook PPL↑ |
 |-----------------------|---------------------|---------------|
@@ -46,24 +79,23 @@ Since DistilCodec was trained on universal audio, we first employed UTMOS for au
 | Background Audio Clarity  | 4.768            | 4.927 |
 | Average Score             | 4.728            | 4.4936|
 
-关于MOS的评估集，原始音频存储在这里：[Original Audios](./data/org_audios/)，而DistilCodec重建的音频则存储在这里：[Reconstructed Audios](./data/gen_audios), 下面是一些原始音频与重建音频的对比：
+The MOS evaluation dataset comprises original audio samples stored in the [Original Audios](./data/org_audios/) directory and corresponding reconstructed samples generated by DistilCodec in the [Reconstructed Audios](./data/gen_audios). Below are comparative analyses between selected original and reconstructed audio pairs:
 | Category        | Original Audio | Reconstructed Aduio   |
 |---------------------------|------------------|-------|
-| Chinese Audiobook    | [audio1](./data/org_audios/0b0c96e3-e2ae-45a3-9488-806cd719517b_0175.wav) | [audio1](./data/gen_audios/0b0c96e3-e2ae-45a3-9488-806cd719517b_0175.wav) |
-| Chinese Audio    | [audio2](./data/org_audios/0d28f03f-70c8-4180-ba1c-37b167aa9447_0074.wav) | [audio2](./data/gen_audios/0d28f03f-70c8-4180-ba1c-37b167aa9447_0074.wav) |
-| Chinese Audio    | [audio3](./data/org_audios/0eff38a1-3c9c-4a33-9be9-896614417d3f_0081.wav) | [audio3](./data/gen_audios/0eff38a1-3c9c-4a33-9be9-896614417d3f_0081.wav) |
-| English Audio    | [audio4](./data/org_audios/f0b1da30-ad19-4619-8aee-4b5c6d8c4acf_POD0000003287_S0000341.wav) | [audio4](./data/gen_audios/f0b1da30-ad19-4619-8aee-4b5c6d8c4acf_POD0000003287_S0000341.wav) |
-| English Audio    | [audio5](./data/org_audios/0016.wav) | [audio5](./data/gen_audios/0016.wav) |
-| English Audio    | [audio6](./data/org_audios/2f7f51c9-c514-4a23-8c31-d032c929df46_YOU0000006574_S0000379.wav) | [audio6](./data/gen_audios/2f7f51c9-c514-4a23-8c31-d032c929df46_YOU0000006574_S0000379.wav) |
+| Chinese Audiobook    |<audio controls src="./data/org_audios/0b0c96e3-e2ae-45a3-9488-806cd719517b_0175.wav">Your browser does not support audio playback. Please download <a href="./data/org_audios/0b0c96e3-e2ae-45a3-9488-806cd719517b_0175.wav">audio file</a>。</audio>|<audio controls src="./data/gen_audios/0b0c96e3-e2ae-45a3-9488-806cd719517b_0175.wav">Your browser does not support audio playback. Please download <a href="./data/gen_audios/0b0c96e3-e2ae-45a3-9488-806cd719517b_0175.wav">audio file</a>。</audio>|
+| Chinese Audio    |<audio controls src="./data/org_audios/0d28f03f-70c8-4180-ba1c-37b167aa9447_0074.wav">Your browser does not support audio playback. Please download <a href="./data/org_audios/0d28f03f-70c8-4180-ba1c-37b167aa9447_0074.wav">audio file</a>。</audio>|<audio controls src="./data/gen_audios/0d28f03f-70c8-4180-ba1c-37b167aa9447_0074.wav">Your browser does not support audio playback. Please download <a href="./data/gen_audios/0d28f03f-70c8-4180-ba1c-37b167aa9447_0074.wav">audio file</a>。</audio>|
+| Chinese Audio    |<audio controls src="./data/org_audios/0eff38a1-3c9c-4a33-9be9-896614417d3f_0081.wav">Your browser does not support audio playback. Please download <a href="./data/org_audios/0eff38a1-3c9c-4a33-9be9-896614417d3f_0081.wav">audio file</a>。</audio>|<audio controls src="./data/gen_audios/0eff38a1-3c9c-4a33-9be9-896614417d3f_0081.wav">Your browser does not support audio playback. Please download <a href="./data/gen_audios/0eff38a1-3c9c-4a33-9be9-896614417d3f_0081.wav">audio file</a>。</audio>|
+| English Audio    |<audio controls src="./data/org_audios/f0b1da30-ad19-4619-8aee-4b5c6d8c4acf_POD0000003287_S0000341.wav">Your browser does not support audio playback. Please download <a href="./data/org_audios/f0b1da30-ad19-4619-8aee-4b5c6d8c4acf_POD0000003287_S0000341.wav">audio file</a>。</audio>|<audio controls src="./data/gen_audios/f0b1da30-ad19-4619-8aee-4b5c6d8c4acf_POD0000003287_S0000341.wav">Your browser does not support audio playback. Please download <a href="./data/gen_audios/f0b1da30-ad19-4619-8aee-4b5c6d8c4acf_POD0000003287_S0000341.wav">audio file</a>。</audio>|
+| English Audio    |<audio controls src="./data/org_audios/0016.wav">Your browser does not support audio playback. Please download <a href="./data/org_audios/0016.wav">audio file</a>。</audio>|<audio controls src="./data/gen_audios/0016.wav">Your browser does not support audio playback. Please download <a href="./data/gen_audios/0016.wav">audio file</a>。</audio>|
+| English Audio    |<audio controls src="./data/org_audios/2f7f51c9-c514-4a23-8c31-d032c929df46_YOU0000006574_S0000379.wav">Your browser does not support audio playback. Please download <a href="./data/org_audios/2f7f51c9-c514-4a23-8c31-d032c929df46_YOU0000006574_S0000379.wav">audio file</a>。</audio>|<audio controls src="./data/gen_audios/2f7f51c9-c514-4a23-8c31-d032c929df46_YOU0000006574_S0000379.wav">Your browser does not support audio playback. Please download <a href="./data/gen_audios/2f7f51c9-c514-4a23-8c31-d032c929df46_YOU0000006574_S0000379.wav">audio file</a>。</audio>|
 
-更多示例音频对比可启动我们的MOS评估工具：
+For additional comparative audio examples, please use our MOS evaluation tool:
 ```bash
 python codec_evaluation_gradio.py
 ```
 Upon launching the system, the interface displays the following components: Model1 represents the original audio, while Model2 corresponds to the audio reconstructed by DistilCodec.
-![DistilCodec的MOS评估工具](./data/distilcodec_sbs.png)
+![DistilCodec的MOS评估工具](./data/distilcodec_mos.png)
 
-### Demonstraion of reconstruction samples
 
 ## Installation of DistilCodec
 -*Step1*: Create conda environment for DistilCodec.
@@ -77,84 +109,71 @@ pip install requirements.txt
 ```
 
 
-## Infer
+## Inference of DistilCodec
 
-### Part1: Reconstruct audio from raw wav
+### Part1: Generating discrete codecs
 
 ```python
 
-from encoder.utils import convert_audio
-import torchaudio
-import torch
-from decoder.pretrained import WavTokenizer
+from distil_codec import DistilCodec, demo_for_generate_audio_codes
 
+codec_model_config_path='path_to_model_config'
+codec_ckpt_path = 'path_to_codec_ckpt_path'
+step=204000
 
-device=torch.device('cpu')
+codec = DistilCodec.from_pretrained(
+    config_path=codec_model_config_path,
+    model_path=codec_ckpt_path,
+    load_steps=step,
+    use_generator=True,
+    is_debug=False).eval()
 
-config_path = "./configs/xxx.yaml"
-model_path = "./xxx.ckpt"
-audio_outpath = "xxx"
+audio_path = 'path_to_audio'
+audio_tokens = demo_for_generate_audio_codes(codec, audio_path, target_sr=24000)
+print(audio_tokens)
 
-wavtokenizer = WavTokenizer.from_pretrained0802(config_path, model_path)
-wavtokenizer = wavtokenizer.to(device)
-
-
-wav, sr = torchaudio.load(audio_path)
-wav = convert_audio(wav, sr, 24000, 1) 
-bandwidth_id = torch.tensor([0])
-wav=wav.to(device)
-features,discrete_code= wavtokenizer.encode_infer(wav, bandwidth_id=bandwidth_id)
-audio_out = wavtokenizer.decode(features, bandwidth_id=bandwidth_id) 
-torchaudio.save(audio_outpath, audio_out, sample_rate=24000, encoding='PCM_S', bits_per_sample=16)
 ```
 
 
-### Part2: Generating discrete codecs
+### Part2: Reconstruct audio from raw wav 
 ```python
 
-from encoder.utils import convert_audio
-import torchaudio
-import torch
-from decoder.pretrained import WavTokenizer
+from distil_codec import DistilCodec, demo_for_generate_audio_codes
 
-device=torch.device('cpu')
+codec_model_config_path='path_to_model_config'
+codec_ckpt_path = 'path_to_codec_ckpt_path'
+step=204000
 
-config_path = "./configs/xxx.yaml"
-model_path = "./xxx.ckpt"
+codec = DistilCodec.from_pretrained(
+    config_path=codec_model_config_path,
+    model_path=codec_ckpt_path,
+    load_steps=step,
+    use_generator=True,
+    is_debug=False).eval()
 
-wavtokenizer = WavTokenizer.from_pretrained0802(config_path, model_path)
-wavtokenizer = wavtokenizer.to(device)
+audio_path = 'path_to_audio'
+audio_tokens = demo_for_generate_audio_codes(codec, audio_path, target_sr=24000)
+print(audio_tokens)
 
-wav, sr = torchaudio.load(audio_path)
-wav = convert_audio(wav, sr, 24000, 1) 
-bandwidth_id = torch.tensor([0])
-wav=wav.to(device)
-_,discrete_code= wavtokenizer.encode_infer(wav, bandwidth_id=bandwidth_id)
-print(discrete_code)
+# Setup generated audio save path, the path is f'{gen_audio_save_path}/audio_name.wav'
+gen_audio_save_path = 'path_to_save_path'
+audio_name = 'your_audio_name'
+y_gen = codec.decode_from_codes(audio_tokens, minus_token_offset=True)
+codec.save_wav(
+    audio_gen_batch=y_gen, 
+    nhop_lengths=[y_gen.shape[-1]], 
+    save_path=gen_audio_save_path,
+    name_tag=audio_name
+)
+
 ```
 
-
-
-### Part3: Audio reconstruction through codecs
-```python
-# audio_tokens [n_q,1,t]/[n_q,t]
-features = wavtokenizer.codes_to_features(audio_tokens)
-bandwidth_id = torch.tensor([0])  
-audio_out = wavtokenizer.decode(features, bandwidth_id=bandwidth_id)
-```
-
-## Available models
+## Available DistilCodec models
 🤗 links to the Huggingface model hub.
+|Model Version| Huggingface |  Corpus  |  Token/s  | Domain | Open-Source |
+|-----------------------|---------|---------------|---------------|-----------------------------------|---------------|
+| DistilCodec-v1.0 | [🤗](https://huggingface.co/IDEA-Emdoor/DistilCodec-v1.0) | Universal Audio | 93 |  Audiobook、Speech、Audio Effects | √ |
 
-| Model name                                                          |                                                                                                            HuggingFace                                                                                                             |  Corpus  |  Token/s  | Domain | Open-Source |
-|:--------------------------------------------------------------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:--------:|:---------:|:----------:|:------:|
-| WavTokenizer-small-600-24k-4096             |             [🤗](https://huggingface.co/novateur/WavTokenizer/blob/main/WavTokenizer_small_600_24k_4096.ckpt)    | LibriTTS  | 40  |  Speech  | √ |
-| WavTokenizer-small-320-24k-4096             |             [🤗](https://huggingface.co/novateur/WavTokenizer/blob/main/WavTokenizer_small_320_24k_4096.ckpt)     | LibriTTS  | 75 |  Speech  | √|
-| WavTokenizer-medium-320-24k-4096                 |               [🤗](https://huggingface.co/collections/novateur/wavtokenizer-medium-large-66de94b6fd7d68a2933e4fc0)         | 10000 Hours | 75 |  Speech, Audio, Music  | √ |
-| WavTokenizer-large-600-24k-4096 | [🤗](https://huggingface.co/novateur/WavTokenizer-large-unify-40token) | 80000 Hours | 40 |   Speech, Audio, Music   | √|
-| WavTokenizer-large-320-24k-4096   | [🤗](https://huggingface.co/novateur/WavTokenizer-large-speech-75token) | 80000 Hours | 75 |   Speech, Audio, Music   | √ |
-
-      
 
 ## Training
 
