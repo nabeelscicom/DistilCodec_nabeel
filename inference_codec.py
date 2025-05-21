@@ -1,4 +1,4 @@
-from aipal_codec import AIPalCodec
+from distil_codec import DistilCodec
 import argparse
 import os
 import torch
@@ -76,7 +76,7 @@ class CodecClient:
         local_rank = int(os.environ['LOCAL_RANK'])
         
     
-        codec = AIPalCodec.from_pretrained(config_path=self.args.model_config,
+        codec = DistilCodec.from_pretrained(config_path=self.args.model_config,
                                        model_path=self.args.ckpt_config,
                                        is_debug=False, local_rank=local_rank).eval()
         if local_rank == 0:

@@ -4,7 +4,7 @@ import json
 import torch
 from tqdm import tqdm
 
-from aipal_codec import AIPalCodec
+from distil_codec import DistilCodec
 from evaluation.si_snr import compute_sisnr
 from evaluation.stoi import compute_stoi
 from evaluation.mcd import compute_mcd
@@ -32,7 +32,7 @@ def reconstruct_audio(valid_config: str,
                                       total_validation_number=n_valid_files,
                                       is_shuffle=False)
     batch_audio = split_list(audio_list, batch_size)
-    codec = AIPalCodec.from_pretrained(config_path=ckpt_config,
+    codec = DistilCodec.from_pretrained(config_path=ckpt_config,
                                        model_path=ckpt_path,
                                        load_steps=valid_config.ckpt_steps,
                                        is_debug=False,

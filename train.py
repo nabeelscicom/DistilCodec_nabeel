@@ -21,7 +21,7 @@ from utils import wandb_log, init_wandb_tb
 from models import get_dataset_filelist
 from train_utils import *
 from evaluation import split_group_and_residual, calc_codebook_ppl_usage
-from aipal_codec import AIPalCodec
+from distil_codec import DistilCodec
 
 torch.backends.cudnn.benchmark = True
 

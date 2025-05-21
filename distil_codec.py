@@ -28,7 +28,7 @@ class AudioBPE(nn.Module):
         super().__init__(*args, **kwargs)
 
 
-class AIPalCodec(nn.Module):
+class DistilCodec(nn.Module):
     def __init__(
         self,
         configs: dict,
@@ -576,7 +576,7 @@ def tokenizer_expanding_qwen():
 
     load_steps = 151000
     codec_date = '0927'
-    codec = AIPalCodec.from_pretrained(config_path=f'/cognitive_comp/wangrui/codes/audio_codec/scripts/workspace/{codec_date}_24k_3s/model_config.json',
+    codec = DistilCodec.from_pretrained(config_path=f'/cognitive_comp/wangrui/codes/audio_codec/scripts/workspace/{codec_date}_24k_3s/model_config.json',
                                        model_path=f'/cognitive_comp/wangrui/data/lam{codec_date}/ckpt',
                                        load_steps=load_steps,
                                        is_debug=False).eval()
@@ -591,7 +591,7 @@ def tokenizer_expanding_qwen():
 
 
 def reset_codebook():
-    codec = AIPalCodec.from_pretrained(config_path='/cognitive_comp/wangrui/codes/audio_codec/scripts/workspace/0930_24k_3s/model_config.json',
+    codec = DistilCodec.from_pretrained(config_path='/cognitive_comp/wangrui/codes/audio_codec/scripts/workspace/0930_24k_3s/model_config.json',
                                        model_path='/cognitive_comp/wangrui/data/lam0930/ckpt',
                                        load_steps=181000,
                                        is_debug=False).eval()
@@ -605,7 +605,7 @@ def codec_test():
                     "/cognitive_comp/common_data/audio/output/dev/df85d640-46bf-4a3d-b642-9ae558fc9966_0012.wav"]
     model_config = "/cognitive_comp/wangrui/codes/audio_codec/scripts/workspace/0827_24k_3s/model_config.json"
     ckpt_config = "/cognitive_comp/wangrui/data/audio_codec_ckpts/0821"
-    codec = AIPalCodec.from_pretrained(config_path=model_config,
+    codec = DistilCodec.from_pretrained(config_path=model_config,
                                        model_path=ckpt_config,
                                        is_debug=False).eval()
     codec.preprocess_audio_batch(audio_pathes=audio_pathes)
@@ -627,7 +627,7 @@ def codec_test():
                     "/cognitive_comp/common_data/audio/output/dev/df85d640-46bf-4a3d-b642-9ae558fc9966_0012.wav"]
     model_config = "/cognitive_comp/wangrui/codes/audio_codec/scripts/workspace/0827_24k_3s/model_config.json"
     ckpt_config = "/cognitive_comp/wangrui/data/audio_codec_ckpts/0821"
-    codec = AIPalCodec.from_pretrained(config_path=model_config,
+    codec = DistilCodec.from_pretrained(config_path=model_config,
                                        model_path=ckpt_config,
                                        is_debug=False).eval()
     codec.preprocess_audio_batch(audio_pathes=audio_pathes)
@@ -648,7 +648,7 @@ def codec_test2():
     audio_pathes = ["/cognitive_comp/common_data/audio/output/dev/df85d640-46bf-4a3d-b642-9ae558fc9966_0012.wav"]
     model_config = "/cognitive_comp/wangrui/codes/audio_codec/scripts/workspace/0927_24k_3s/model_config.json"
     ckpt_config = "/cognitive_comp/wangrui/data/lam0927/ckpt"
-    codec = AIPalCodec.from_pretrained(config_path=model_config,
+    codec = DistilCodec.from_pretrained(config_path=model_config,
                                        model_path=ckpt_config,
                                        load_steps=204000,
                                        use_generator=True,
@@ -672,7 +672,7 @@ def codec_test3():
     audio_pathes = './log/codes.json'
     model_config = "/cognitive_comp/wangrui/codes/audio_codec/scripts/workspace/0927_24k_3s/model_config.json"
     ckpt_config = "/cognitive_comp/wangrui/data/lam0927/ckpt"
-    codec = AIPalCodec.from_pretrained(config_path=model_config,
+    codec = DistilCodec.from_pretrained(config_path=model_config,
                                        model_path=ckpt_config,
                                        load_steps=204000,
                                        use_generator=True,
