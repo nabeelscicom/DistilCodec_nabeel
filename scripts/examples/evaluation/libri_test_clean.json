@@ -1,0 +1,9 @@
+{
+    "validation_files_path": [
+       "/cognitive_comp/wangrui/data/libritts/test-clean"
+    ],
+    "audio_path": "/cognitive_comp/wangrui/data/lam0927",
+    "n_valid_files": 10000,
+    "ckpt_steps": 204000,
+    "eval_name": "libritts-test-clean"
+}

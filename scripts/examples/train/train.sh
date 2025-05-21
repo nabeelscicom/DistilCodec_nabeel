@@ -1,18 +1,18 @@
 #!/bin/bash
-#SBATCH --job-name=audio_tokenizer # create a short name for your job
-#SBATCH --nodes=5 # node count
+#SBATCH --job-name=distilcodec_training # create a short name for your job
+#SBATCH --nodes=4 # node count
 #SBATCH --gres=gpu:hgx:8 # number of gpus per node
 #SBATCH --ntasks-per-node=1 # total number of tasks across all nodes
-#SBATCH --cpus-per-task=64 # cpu-cores per task (>1 if multi-threaded tasks)
+#SBATCH --cpus-per-task=32 # cpu-cores per task (>1 if multi-threaded tasks)
 #SBATCH --mem-per-cpu=16G # memory per cpu-core (4G is default)
 
 #SBATCH -p pos
-#SBATCH -o /cognitive_comp/wangrui/codes/audio_codec/log/%x-%j.log
+#SBATCH -o /path/to/log_path/%x-%j.log
 
 # mode=debug
 mode=train
 
-nnodes=5
+nnodes=4
 num_gpus=8
 gpus_per_node=$num_gpus
 
@@ -24,10 +24,10 @@ master_port=$(shuf -n 1 -i 40000-65535)
 echo Node IP: $head_node_ip
 export LOGLEVEL=INFO
 
-base_path=/cognitive_comp/wangrui/codes/audio_codec/scripts/workspace/0903_24k_3s
+base_path=/path/to/config
 model_config=${base_path}/model_config.json
 train_config=${base_path}/train_config.json
-CODE_PATH=/cognitive_comp/wangrui/codes/audio_codec
+CODE_PATH=/path/to/distilcodec
 
 if [ "${mode}" == "debug" ]; then
   ## debug
@@ -56,6 +56,6 @@ elif [ "$mode" == "train" ]; then
     --rdzv_endpoint=$head_node_ip:$master_port \
     ${CODE_PATH}/train.py \
     --model_config ${model_config} \
-    --train_config ${train_config}
-    # --fsdp
+    --train_config ${train_config} \
+    --amp 
 fi

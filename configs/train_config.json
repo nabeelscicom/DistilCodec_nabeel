@@ -3,28 +3,65 @@
         "learning_rate": 0.0002,
         "adam_b1": 0.5,
         "adam_b2": 0.9,
-        "lr_decay": 0.98
+        "lr_decay": 0.98,
+        "weight_decay": 0.001
+    },
+    "wandb": {
+        "use_wandb": true,
+        "wandb_project": "audio-tokenizer-0927",
+        "wandb_group": "audio-tokenizer",
+        "wandb_team": "ccnl-s-team"
     },
     "mels_path": null,
-    "training_files_path": "path/to/train_audiofiles",
-    "validation_files_path": "path/to/valid_audiofiles",
-    "checkpoint_path": "/cognitive_comp/wangrui/data/lam0813/ckpt",
-    "logger_path": "/cognitive_comp/wangrui/data/lam0813/logging",
-    "training_epochs": 2000,
-    "checkpoint_interval": 5000,
-    "validation_interval": 5000,
-    "num_ckpt_keep": 5,
+    "training_files_path": {
+        "replay_training_file_pathes": [
+            {
+                "path": "/cognitive_comp/common_data/audio/output/24k",
+                "replay_rate": 1.0
+            },
+            {
+                "path": "/cognitive_comp/common_data/audio/output/24k_data/24k_1_10s/stage2",
+                "replay_rate": 0.6
+            },
+            {
+                "path": "/cognitive_comp/common_data/audio/output/24k_data/24k_1_10s/stage3",
+                "replay_rate": 0.6
+            },
+            {
+                "path": "/cognitive_comp/common_data/audio/output/lam/asr_tts",
+                "replay_rate": 0.01
+            }
+        ],
+        "current_training_file_pathes": [
+            "/cognitive_comp/common_data/audio/output/24k_data/24k_1_10s/stage4"
+        ]
+    },
+    "validation_files_path": [
+        "/cognitive_comp/common_data/audio/output/dev",
+        "/cognitive_comp/common_data/audio/output/24k_data/dev/stage2",
+        "/cognitive_comp/common_data/audio/output/24k_data/dev/stage3",
+        "/cognitive_comp/common_data/audio/output/24k_data/dev/stage4"
+    ],
+    "save_path": "/cognitive_comp/wangrui/data/lam0927",
+    "distill": {
+        "is_distill": true,
+        "use_fm_distill": false,
+        "quantizer_transfer": false,
+        "teacher_ckpt_path": "/cognitive_comp/wangrui/data/lam0923/saved_ckpt"
+    },
+    "training_epochs": 50,
+    "checkpoint_interval": 1000,
+    "validation_interval": 2000,
+    "accumulation_steps": 1,
+    "summary_interval": 10,
+    "stdout_interval": 10,
+    "num_ckpt_keep": 30,
     "fine_tuning": false,
     "num_gpus": 8,
-    "batch_size": 64,
+    "batch_size": 152,
     "seed": 1234,
-    "sampling_rate": 44100,
+    "sampling_rate": 24000,
     "codebook_loss_lambda": 1.0,
     "commitment_loss_lambda": 0.25,
-    "num_workers": 12,
-    "dist_config": {
-        "dist_backend": "nccl",
-        "dist_url": "tcp://localhost:54321",
-        "world_size": 1
-    }
+    "num_workers": 4
 }

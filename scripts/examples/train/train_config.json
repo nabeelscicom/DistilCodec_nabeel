@@ -1,0 +1,52 @@
+{
+    "adam": {
+        "learning_rate": 0.0002,
+        "adam_b1": 0.5,
+        "adam_b2": 0.9,
+        "lr_decay": 0.98,
+        "weight_decay": 0.001
+    },
+    "wandb": {
+        "use_wandb": true,
+        "wandb_project": "project_name",
+        "wandb_group": "group_name",
+        "wandb_team": "wandb_team"
+    },
+    "mels_path": null,
+    "training_files_path": {
+        "replay_training_file_pathes": [
+            {
+                "path": "/replay/data/path/if_needed",
+                "replay_rate": 1.0
+            }
+        ],
+        "current_training_file_pathes": [
+            "/data/path/for/training"
+        ]
+    },
+    "validation_files_path": [
+        "/valid/path/for/training"
+    ],
+    "save_path": "/path/to/save/codec_ckpt",
+    "distill": {
+        "is_distill": true,
+        "use_fm_distill": false,
+        "quantizer_transfer": false,
+        "teacher_ckpt_path": "/path/to/teacher_codec"
+    },
+    "training_epochs": 50,
+    "checkpoint_interval": 1000,
+    "validation_interval": 2000,
+    "accumulation_steps": 1,
+    "summary_interval": 10,
+    "stdout_interval": 10,
+    "num_ckpt_keep": 30,
+    "fine_tuning": false,
+    "num_gpus": 8,
+    "batch_size": 152,
+    "seed": 1234,
+    "sampling_rate": 24000,
+    "codebook_loss_lambda": 1.0,
+    "commitment_loss_lambda": 0.25,
+    "num_workers": 4
+}

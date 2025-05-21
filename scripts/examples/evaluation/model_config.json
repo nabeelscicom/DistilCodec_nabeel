@@ -1,13 +1,15 @@
 {
     "summary": {
-        "quantizer_dim": 4096,
-        "codebook_per_group_per_residual": 1024,
-        "group": 8,
-        "residual": 4,
-        "original_residual_dim": 128,
-        "codebook_upsample": 4,
-        "codebook_dim": 512
+        "quantizer_dim": 3584,
+        "codebook_per_group_per_residual": 3584,
+        "group": 1,
+        "residual": 1,
+        "original_residual_dim": 1024,
+        "codebook_upsample": 3.5,
+        "codebook_dim": 3584
     },
+    "base_model": "QWen2.5-7B-Pretrain",
+    "token_id_offset": 152064,
     "spec_transform": {
         "sampling_rate": 24000,
         "segment_size": 72000,
@@ -16,7 +18,7 @@
         "hop_size": 256,
         "win_size": 1024,
         "fmin": 0,
-        "fmax": 24000,
+        "fmax": 12000,
         "fmax_loss": null
     },
     "encoder": {
@@ -94,17 +96,19 @@
             5
         ],
         "downsample_factor": [
-            2,
-            2
-        ]
+            1
+        ],
+        "ema_decay": 0.8,
+        "codebook_diversity_loss_weight": 1.0,
+        "codebook_diversity_temperature": 100.0
     },
     "teacher_quantizer": {
         "quantizer_type": "grvq",
         "input_dim": 1024,
-        "n_groups": 8,
-        "n_codebooks": 4,
-        "codebook_size": 1024,
-        "codebook_dim": 512,
+        "n_groups": 2,
+        "n_codebooks": 1,
+        "codebook_size": 32768,
+        "codebook_dim": 3584,
         "levels": [
             8,
             5,
@@ -112,9 +116,11 @@
             5
         ],
         "downsample_factor": [
-            2,
             2
-        ]
+        ],
+        "ema_decay": 0.8,
+        "codebook_diversity_loss_weight": 1.0,
+        "codebook_diversity_temperature": 100.0
     },
     "descriminators": {
         "MultiPeriodDiscriminator": {

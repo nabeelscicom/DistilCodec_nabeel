@@ -1,0 +1,12 @@
+{
+    "validation_files_path": [
+        "/path/to/eval_audio_path1",
+        "/path/to/eval_audio_path2"
+    ],
+    "libritts_test-clean_path": "/path/to/libritts/test-clean",
+    "libritts_test-other_path": "/path/to/libritts/test-other",
+    "audio_path": "/path/to/eval_result",
+    "ckpt_steps": 204000,
+    "n_valid_files": 1000,
+    "only_calc_usage": false
+}

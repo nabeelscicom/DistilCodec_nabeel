@@ -26,18 +26,12 @@ STFT Discriminator (MSFTFD). Here is the architecture of Distilcodec:
 We have developed a novel distillation approach termed DMS (**D**istilling **M**ulti-Codebook NAC to **S**ingle-Codebook NAC) by enabling the Student NAC to inherit encoder and decoder parameters from the Teacher NAC. Based on DMS, we trained DistilCodec using universal audio datasets as training data, achieving a single codebook with a codebook size of 32,768 while maintaining codebook utilization approaching 100\%. Simultaneously, the DMS algorithm enables the dimension of the distilled Student NAC Codebook to be scaled beyond 2048. Leveraging this capability, we configured the codebook dimension to 3584, aligning with the word embedding dimension of QWen2.5-7B (3584), so we subsequently leveraged DistilCodec's codebook to initialize the audio embedding layer in [UniTTS](https://github.com/IDEA-Emdoor-Lab/UniTTS). Here is the psuedo code of DMS:
 #### Algorithm DMS: Distilling Multi-Codebook NAC to Single-Codebook NAC via parameter inheritance
 1. **Step 1:** Initializing *Teacher codec*:
-   Teacher\_codec = Codec_{s1}(8, 4, 1024, 512, E^{scratch}_{param}, G^{scratch}_{param}, VQ^{scratch}_{param})
-
-2. **Step 2:** *Teacher codec* training with DLF
-
+   ![Step1 formula](./data/step1_formula.png)
+2. **Step 2:** *Teacher codec* training with LSGAN
 3. **Step 3:** Initializing *Student codec*:
-   $$
-   Student\_codec = Codec_{s2}(1, 1, 35768, 3584, E^{teacher}_{param}, G^{teacher}_{param}, VQ^{scratch}_{param})
-   $$
-
+   ![Step3 formula](./data/step3_formula.png)
 4. **Step 4:** *Student codec* training with DLF
-
-5. **Output:** $DistilCodec = Student\_codec$
+5. **Output:** DistilCodec = Student_codec
 
 The parameter settings for the codebooks of Teacher Codec and Student Codec are as follows, where N-Residual indicates the number of residual layers, N-Group denotes the number of groups, N-Codes/Codebook represents the number of codes per codebook, and Dimension specifies the dimension of the codebook.
 | Codec       | N-Residual | N-Group | N-Codes/Codebook | Dimension |
@@ -94,6 +88,10 @@ python codec_evaluation_gradio.py
 Upon launching the system, the interface displays the following components: Model1 represents the original audio, while Model2 corresponds to the audio reconstructed by DistilCodec.
 ![DistilCodec的MOS评估工具](./data/distilcodec_mos.png)
 
+If you want to perform a benchmark evaluation on LibriSpeech-test, you can follow these steps:
+- *Eval Config*: Modify the values of parameters in [Eval Cofig](./scripts/examples/evaluation/train_config.json), such as filelist_path, save_dir.
+- *Eval Shell*: Modify the values of parameters in [Eval Shell](./scripts/examples/evaluation/libri_test_clean_eval.sh).
+- *Execute Shell*: Run the eval shell.
 
 ## Installation of DistilCodec
 -*Step1*: Create conda environment for DistilCodec.
@@ -175,42 +173,36 @@ codec.save_wav(
 ## Training of DistilCodec
 
 ### Step1: Prepare train dataset
-```python
-# Process the data into a form similar to ./data/demo.txt
-```
+Prepare audio segments like [Audio Examples for Traing](./data/training_data_demos/). The audio setting is shown in below table:
+| Duration(s) | Sampling Rate(Hz)| Audio Category |
+|-----------------------|---------------------|---------------|
+| 2s ~ 10s | 24000 | Universal audio (Speech, Audiobook, Audio Effects etc.) |
 
 ### Step2: Modifying configuration files
-```python
-# ./configs/xxx.yaml
-# Modify the values of parameters such as batch_size, filelist_path, save_dir, device
-```
+- *Train Config*: Modify the values of parameters in [Train Cofig](./scripts/examples/train/train_config.json), such as batch_size, filelist_path, save_dir.
+- *Model Config*: Modify the values of parameters in [Model Cofig](./scripts/examples/train/model_config.json).
+- *Train Shell*: Modify the values of parameters in [Train Shell](./scripts/examples/evaluation/common_eval.json).
 
 ### Step3: Start training process
-Refer to [Pytorch Lightning documentation](https://lightning.ai/docs/pytorch/stable/) for details about customizing the
-training pipeline.
-
+Execute training shell if you can use slurm:
 ```bash
-cd ./WavTokenizer
-python train.py fit --config ./configs/xxx.yaml
+sbatch ./path/to/train.sh
+```
+if you don't use slurm, then you can execute the training:
+```bash
+sh ./path/to/train.sh
 ```
 
 
 ## Citation
 
-If this code contributes to your research, please cite our work, Language-Codec and WavTokenizer:
+If this code contributes to your research, please cite our work, UniTTS:
 
 ```
-@article{ji2024wavtokenizer,
-  title={Wavtokenizer: an efficient acoustic discrete codec tokenizer for audio language modeling},
-  author={Ji, Shengpeng and Jiang, Ziyue and Wang, Wen and Chen, Yifu and Fang, Minghui and Zuo, Jialong and Yang, Qian and Cheng, Xize and Wang, Zehan and Li, Ruiqi and others},
+@article{wang2025unitts,
+  title={UniTTS: An end-to-end TTS system without decoupling of acoustic and semantic information},
+  author={Rui Wang,Qianguo Sun,Tianrong Chen,Zhiyun Zeng,Junlong Wu,Jiaxing Zhang},
   journal={arXiv preprint arXiv:2408.16532},
-  year={2024}
-}
-
-@article{ji2024language,
-  title={Language-codec: Reducing the gaps between discrete codec representation and speech language models},
-  author={Ji, Shengpeng and Fang, Minghui and Jiang, Ziyue and Huang, Rongjie and Zuo, Jialung and Wang, Shulei and Zhao, Zhou},
-  journal={arXiv preprint arXiv:2402.12208},
-  year={2024}
+  year={2025}
 }
 ```
