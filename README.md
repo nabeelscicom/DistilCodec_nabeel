@@ -21,6 +21,14 @@ ogy of DistilCodec follows a similar approach to HiFiGAN, incorporating three ty
 discriminators: Multi-Period Discriminator (MPD), Multi-Scale Discriminator (MSD), and Multi-
 STFT Discriminator (MSFTFD). Here is the architecture of Distilcodec:
 ![The Architecture of DistilCodec](./data/distilcodec_architecture.jpg)
+Distribution of DistilCodec training data is shown in below table:
+| **Data Category**           | **Data Size (in hours)** |
+|-----------------------------|--------------------------|
+| Chinese Audiobook            | 38000                    |
+| Chinese Common Audio         | 20000                    |
+| English Audio               | 40000                    |
+| Music                       | 2000                     |
+| **Total**                   | **100000**               |
 
 ### Training Schema
 We have developed a novel distillation approach termed DMS (**D**istilling **M**ulti-Codebook NAC to **S**ingle-Codebook NAC) by enabling the Student NAC to inherit encoder and decoder parameters from the Teacher NAC. Based on DMS, we trained DistilCodec using universal audio datasets as training data, achieving a single codebook with a codebook size of 32,768 while maintaining codebook utilization approaching 100\%. Simultaneously, the DMS algorithm enables the dimension of the distilled Student NAC Codebook to be scaled beyond 2048. Leveraging this capability, we configured the codebook dimension to 3584, aligning with the word embedding dimension of QWen2.5-7B (3584), so we subsequently leveraged DistilCodec's codebook to initialize the audio embedding layer in [UniTTS](https://github.com/IDEA-Emdoor-Lab/UniTTS). Here is the psuedo code of DMS:
