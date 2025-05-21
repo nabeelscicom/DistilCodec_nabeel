@@ -5,3 +5,4 @@ wandb
 workspace
 __pycache__
 nohup.out
+tmp
