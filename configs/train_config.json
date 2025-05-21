@@ -1,0 +1,30 @@
+{
+    "adam": {
+        "learning_rate": 0.0002,
+        "adam_b1": 0.5,
+        "adam_b2": 0.9,
+        "lr_decay": 0.98
+    },
+    "mels_path": null,
+    "training_files_path": "path/to/train_audiofiles",
+    "validation_files_path": "path/to/valid_audiofiles",
+    "checkpoint_path": "/cognitive_comp/wangrui/data/lam0813/ckpt",
+    "logger_path": "/cognitive_comp/wangrui/data/lam0813/logging",
+    "training_epochs": 2000,
+    "checkpoint_interval": 5000,
+    "validation_interval": 5000,
+    "num_ckpt_keep": 5,
+    "fine_tuning": false,
+    "num_gpus": 8,
+    "batch_size": 64,
+    "seed": 1234,
+    "sampling_rate": 44100,
+    "codebook_loss_lambda": 1.0,
+    "commitment_loss_lambda": 0.25,
+    "num_workers": 12,
+    "dist_config": {
+        "dist_backend": "nccl",
+        "dist_url": "tcp://localhost:54321",
+        "world_size": 1
+    }
+}
