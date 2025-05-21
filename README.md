@@ -20,6 +20,7 @@ The second row of the table demonstrates the codebook utilization and perplexity
 |-----------------------|---------------------|---------------|
 | LibriSpeech-Clean-Test| 98.2                | 21660.5       |
 | Universal-Audio-Test  | 99.9                | 26999.0       |
+
 Additionally, we conducted a comprehensive comparative analysis of DistilCodec’s speech reconstruction capabilities using the LibriSpeech-Clean-Test benchmark. 
 | Model             | Codebook Size | Nq | Token Rate (TPS) | Bandwidth (bps) | STOI ↑ | PESQ ↑ | UTMOS ↑ |
 |-------------------|---------------|----|------------------|----------------|--------|--------|--------|
@@ -37,6 +38,30 @@ Additionally, we conducted a comprehensive comparative analysis of DistilCodec�
 | Single-Codec      | 8192          | 1  | 23.4             | 304            | 0.86   | 1.88   | 3.72   |
 | BiCodec           | 8192          | 1  | 50               | 650            | 0.92   | 2.51   | 4.18   |
 | DistilCodec       | 32768         | 1  | 93               | 1300           | 0.93   | 2.02   | 3.75   |
+
+Since DistilCodec was trained on universal audio, we first employed UTMOS for automatic quality assessment. However, the universal audio test set received an unreliable low score (1.89), indicating UTMOS's inadequacy for universal audio evaluation. We therefore conducted a Mean Opinion Score (MOS) evaluation, the results are shown:
+| Assessment Items          | Reconstructed | Original    |
+|---------------------------|------------------|-------|
+| Speech Clarity            | 4.689            | 4.945 |
+| Background Audio Clarity  | 4.768            | 4.927 |
+| Average Score             | 4.728            | 4.4936|
+
+关于MOS的评估集，原始音频存储在这里：[Original Audios](./data/org_audios/)，而DistilCodec重建的音频则存储在这里：[Reconstructed Audios](./data/gen_audios), 下面是一些原始音频与重建音频的对比：
+| Category        | Original Audio | Reconstructed Aduio   |
+|---------------------------|------------------|-------|
+| Chinese Audiobook    | [audio1](./data/org_audios/0b0c96e3-e2ae-45a3-9488-806cd719517b_0175.wav) | [audio1](./data/gen_audios/0b0c96e3-e2ae-45a3-9488-806cd719517b_0175.wav) |
+| Chinese Audio    | [audio2](./data/org_audios/0d28f03f-70c8-4180-ba1c-37b167aa9447_0074.wav) | [audio2](./data/gen_audios/0d28f03f-70c8-4180-ba1c-37b167aa9447_0074.wav) |
+| Chinese Audio    | [audio3](./data/org_audios/0eff38a1-3c9c-4a33-9be9-896614417d3f_0081.wav) | [audio3](./data/gen_audios/0eff38a1-3c9c-4a33-9be9-896614417d3f_0081.wav) |
+| English Audio    | [audio4](./data/org_audios/f0b1da30-ad19-4619-8aee-4b5c6d8c4acf_POD0000003287_S0000341.wav) | [audio4](./data/gen_audios/f0b1da30-ad19-4619-8aee-4b5c6d8c4acf_POD0000003287_S0000341.wav) |
+| English Audio    | [audio5](./data/org_audios/0016.wav) | [audio5](./data/gen_audios/0016.wav) |
+| English Audio    | [audio6](./data/org_audios/2f7f51c9-c514-4a23-8c31-d032c929df46_YOU0000006574_S0000379.wav) | [audio6](./data/gen_audios/2f7f51c9-c514-4a23-8c31-d032c929df46_YOU0000006574_S0000379.wav) |
+
+更多示例音频对比可启动我们的MOS评估工具：
+```bash
+python codec_evaluation_gradio.py
+```
+Upon launching the system, the interface displays the following components: Model1 represents the original audio, while Model2 corresponds to the audio reconstructed by DistilCodec.
+![DistilCodec的MOS评估工具](./data/distilcodec_sbs.png)
 
 ### Demonstraion of reconstruction samples
 

@@ -21,7 +21,7 @@ AUDIO_FOLDERS = [
 
 # 评分维度
 SCORING_DIMENSIONS = ["Fidelity of BGM", "Fidelity of Speech"]
-SCORING_DIMENSIONS_CN = ["BGM保真度", "Speech保真度"]
+SCORING_DIMENSIONS_CN = ["BGM Fidelity", "Speech Fidelity"]
 
         
 def get_speaker_id_info(ref_speaker_id_info_list):
