@@ -96,7 +96,7 @@ For additional comparative audio examples, please use our MOS evaluation tool:
 python codec_evaluation_gradio.py
 ```
 Upon launching the system, the interface displays the following components: Model1 represents the original audio, while Model2 corresponds to the audio reconstructed by DistilCodec.
-![DistilCodec的MOS评估工具](./data/distilcodec_mos.png)
+![DistilCodec MOS Tool](./data/distilcodec_mos.png)
 
 If you want to perform a benchmark evaluation on LibriSpeech-test, you can follow these steps:
 - *Eval Config*: Modify the values of parameters in [Eval Cofig](./scripts/examples/evaluation/train_config.json), such as filelist_path, save_dir.
