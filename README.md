@@ -117,7 +117,7 @@ pip install requirements.txt
 
 ## Inference of DistilCodec
 
-### Part1: Generating discrete codecs
+### Part1:  Reconstruct audio from raw audio
 
 ```python
 
@@ -145,7 +145,7 @@ print(audio_tokens)
 
 ```
 
-### Part2: Reconstruct audio from raw wav 
+### Part2: Reconstruct audio from raw audio
 ```python
 
 from distil_codec import DistilCodec, demo_for_generate_audio_codes
