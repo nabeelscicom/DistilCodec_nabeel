@@ -24,10 +24,10 @@ STFT Discriminator (MSFTFD). Here is the architecture of Distilcodec:
 Distribution of DistilCodec training data is shown in below table:
 | **Data Category**           | **Data Size (in hours)** |
 |-----------------------------|--------------------------|
-| Chinese Audiobook            | 38000                    |
-| Chinese Common Audio         | 20000                    |
-| English Audiobook            | 10000                    |
-| English Speech               | 30000                    |
+| Chinese Audiobook           | 38000                    |
+| Chinese Common Audio        | 20000                    |
+| English Audiobook           | 10000                    |
+| English Speech              | 30000                    |
 | Music                       | 2000                     |
 | **Total**                   | **100000**               |
 
@@ -174,9 +174,9 @@ codec.save_wav(
 
 ## Available DistilCodec models
 🤗 links to the Huggingface model hub.
-|Model Version| Huggingface |  Corpus  |  Token/s  | Domain | Open-Source |
-|-----------------------|---------|---------------|---------------|-----------------------------------|---------------|
-| DistilCodec-v1.0 | [🤗](https://huggingface.co/IDEA-Emdoor/DistilCodec-v1.0) | Universal Audio | 93 |  Audiobook、Speech、Audio Effects | √ |
+|Model Version| Huggingface |  Corpus  |  Token/s  | Domain |
+|-----------------------|---------|---------------|---------------|-----------------------------------|
+| DistilCodec-v1.0 | [🤗](https://huggingface.co/IDEA-Emdoor/DistilCodec-v1.0) | Universal Audio | 93 |  Audiobook、Speech、Audio Effects |
 
 
 ## Training of DistilCodec
