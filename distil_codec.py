@@ -10,7 +10,6 @@ import torch
 from torch import nn
 import numpy as np
 import soundfile as sf
-import torch.amp
 from tqdm import tqdm
 import librosa
 
@@ -113,18 +112,10 @@ class DistilCodec(nn.Module):
         max_length = total_time = 0
         for p in audio_data_info_list:
             audio, sampling_rate = p
-            # try:
-            #    audio, sampling_rate = load_wav(p, sr=self.spec_config.sampling_rate)
-            #except Exception as e:
-            #    print(f"Error on audio: {p}")
-            #    audio = np.random.normal(size=(self.spec_config.sampling_rate, )) * 0.05
-            #    sampling_rate = self.spec_config.sampling_rate
             if sampling_rate != self.spec_config.sampling_rate:
                 audio = librosa.resample(audio, orig_sr=sampling_rate, target_sr=self.spec_config.sampling_rate)
                 sampling_rate = self.spec_config.sampling_rate
-                #raise ValueError("{} SR doesn't match target {} SR".format(sampling_rate, 
-                #                                                           self.spec_config.sampling_rate))
-            
+       
             audio = torch.FloatTensor(audio)
             audio = audio.unsqueeze(0)
             if audio.shape[0] > 1:
@@ -604,11 +595,12 @@ class DistilCodec(nn.Module):
                     print(f'c is :{c}', flush=True)
             codes = [c - self.tokens_id_offset for c in codes]
         codes = torch.tensor(codes, dtype=torch.int64).unsqueeze(0).unsqueeze(0).unsqueeze(-1).cuda()
-        with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=enable_bfloat16):
-            re_features = self.quantizer.decode(indices=codes)
-            y_g_hat = self.generator(re_features)
+        with torch.no_grad():
+            with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=enable_bfloat16):
+                re_features = self.quantizer.decode(indices=codes)
+                y_g_hat = self.generator(re_features)
 
-        return y_g_hat
+        return y_g_hat.detach()
     
     def save_wav(self, audio_gen_batch: torch.Tensor, nhop_lengths, audio_names=None, save_path='./log', name_tag='default'):
         if audio_names is not None and len(audio_names) == len(nhop_lengths):
@@ -627,28 +619,27 @@ class DistilCodec(nn.Module):
         return gen_audio_pathes
     
     
-def load_and_resample_audio(file_path, target_sr, mono=True, limited=None):
-    """
-    读取说话人语音文件，修改采样率，并合并多声道（如果需要）。
+def load_and_resample_audio(file_path, target_sr, mono=True):
+    """Loading audio(mp3, wav) and resampling to target sampling rate.
 
-    :param file_path: 说话人语音文件的路径
-    :param target_sr: 目标采样率
-    :param mono: 是否将说话人语音转换为单声道（True）或保持多声道（False）
-    :return: 处理后的说话人语音信号和目标采样率
+    Args:
+        file_path (_type_): Audio path.
+        target_sr (_type_): Target sampling rate.
+        mono (bool, optional): Wheather converting multi-channel audio into mono channel. Defaults to True.
+        limited (_type_, optional): Weather chunking audio. Defaults to None.
+
+    Returns:
+        _type_: _description_
     """
-    # 读取说话人语音文件
+    
+    # Loading audio.
     y, orig_sr = librosa.load(file_path, sr=None, mono=False)
     audio_duration = len(y) / orig_sr
-    # 如果音频长度超过最大时长，随机截取一段音频
-    if limited is not None and audio_duration > limited and len(y) - int(orig_sr * limited) > 1000:
-        start = np.random.randint(0, len(y) - int(orig_sr * limited))
-        y = y[start:start + int(orig_sr * limited)]
-        # y = y[:int(limited * orig_sr)]
 
-    # 修改采样率
+    # Resampling to target sampling rate.
     y_resampled = librosa.resample(y, orig_sr=orig_sr, target_sr=target_sr)
 
-    # 合并多声道（如果需要）
+    # Converting multi-channel to mono -channel.
     if mono and len(y_resampled.shape) > 1:
         y_resampled = np.mean(y_resampled, axis=1, keepdims=True)
     if len(y_resampled.shape) == 1:
@@ -658,6 +649,18 @@ def load_and_resample_audio(file_path, target_sr, mono=True, limited=None):
 
 
 def decode_audio(codec: DistilCodec, audio_tsr, target_sr=24000, plus_offset: bool = True):
+    """A demo method for decoding audio token int audio wave.
+
+    Args:
+        codec (DistilCodec): An instance of DisilCodec
+        audio_tsr (_type_): Audio with target sampling rate.
+        target_sr (int, optional): Target Sampling Rate. Defaults to 24000.
+        plus_offset (bool, optional): Weather plus LLM's token offset, if set to False, then the audio token will be in [0, 32767]; If set to True, then the audio token will be in [offset, offset + 32767]. Defaults to True.
+
+    Returns:
+        List of int: Audio tokens list.
+    """
+    
     with torch.no_grad():
         quantized_ret = codec.encode([[audio_tsr.tolist()[0], target_sr]], enable_bfloat16=True, raw_audio=True)[0]
         if plus_offset:
@@ -669,8 +672,20 @@ def decode_audio(codec: DistilCodec, audio_tsr, target_sr=24000, plus_offset: bo
     return audio_tokens
 
 
-def demo_for_generate_audio_codes(codec: DistilCodec, audio_path, target_sr=24000):
+def demo_for_generate_audio_codes(codec: DistilCodec, audio_path, target_sr=24000, plus_llm_offset=True):
+    """A demo method for generate audio from audio tokens.
+
+    Args:
+        codec (DistilCodec): An instance of DisilCodec
+        audio_path (_type_): The input audio file path.
+        target_sr (int, optional): Target sampling rate. Defaults to 24000.
+        plus_llm_offset (bool, optional):  Weather plus LLM's token offset, if set to False, then the audio token will be in [0, 32767]; If set to True, then the audio token will be in [offset, offset + 32767]. Defaults to True.
+
+    Returns:
+        List of Int: Audio tokens list.
+    """
+    
     audio_tsr, _, _ = load_and_resample_audio(file_path=audio_path, target_sr=target_sr, limited=None)
-    audio_tokens = decode_audio(codec, audio_tsr=audio_tsr)
+    audio_tokens = decode_audio(codec, audio_tsr=audio_tsr, plus_offset=plus_llm_offset)
     
     return audio_tokens
