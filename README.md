@@ -121,8 +121,8 @@ pip install requirements.txt
 
 from distil_codec import DistilCodec, demo_for_generate_audio_codes
 
-codec_model_config_path='path_to_model_config'
-codec_ckpt_path = 'path_to_codec_ckpt_path'
+codec_model_config_path='/path/to/distilcodec/model_config.json'
+codec_ckpt_path = '/path/to/distilcodec_ckpt'
 step=204000
 
 codec = DistilCodec.from_pretrained(
@@ -132,8 +132,13 @@ codec = DistilCodec.from_pretrained(
     use_generator=True,
     is_debug=False).eval()
 
-audio_path = 'path_to_audio'
-audio_tokens = demo_for_generate_audio_codes(codec, audio_path, target_sr=24000)
+audio_path = '/path/to/audio_file'
+audio_tokens = demo_for_generate_audio_codes(
+    codec, 
+    audio_path, 
+    target_sr=24000, 
+    plus_llm_offset=True # If this parameter set to True, then it will add LLM's vocabulary number to audio token, and DistilCodec's default vocabulary number is from QWen2.5-7B.
+)
 print(audio_tokens)
 
 ```
@@ -143,8 +148,10 @@ print(audio_tokens)
 
 from distil_codec import DistilCodec, demo_for_generate_audio_codes
 
-codec_model_config_path='path_to_model_config'
-codec_ckpt_path = 'path_to_codec_ckpt_path'
+from distil_codec import DistilCodec, demo_for_generate_audio_codes
+
+codec_model_config_path='/path/to/distilcodec/model_config.json'
+codec_ckpt_path = '/path/to/distilcodec_ckpt'
 step=204000
 
 codec = DistilCodec.from_pretrained(
@@ -154,14 +161,22 @@ codec = DistilCodec.from_pretrained(
     use_generator=True,
     is_debug=False).eval()
 
-audio_path = 'path_to_audio'
-audio_tokens = demo_for_generate_audio_codes(codec, audio_path, target_sr=24000)
+audio_path = '/path/to/audio_file'
+audio_tokens = demo_for_generate_audio_codes(
+    codec, 
+    audio_path, 
+    target_sr=24000, 
+    plus_llm_offset=True # If this parameter set to True, then it will add LLM's vocabulary number to audio token, and DistilCodec's default vocabulary number is from QWen2.5-7B.
+)
 print(audio_tokens)
 
-# Setup generated audio save path, the path is f'{gen_audio_save_path}/audio_name.wav'
-gen_audio_save_path = 'path_to_save_path'
-audio_name = 'your_audio_name'
-y_gen = codec.decode_from_codes(audio_tokens, minus_token_offset=True)
+# Generated audio save path, the path is f'{gen_audio_save_path}/{audio_name}.wav'
+gen_audio_save_path = '/path/to/audio_save_path'
+audio_name = 'audio_name'
+y_gen = codec.decode_from_codes(
+    audio_tokens, 
+    minus_token_offset=True # if the 'plus_llm_offset' of method demo_for_generate_audio_codes is set to True, then minus_token_offset must be True.
+)
 codec.save_wav(
     audio_gen_batch=y_gen, 
     nhop_lengths=[y_gen.shape[-1]], 
