@@ -150,8 +150,6 @@ print(audio_tokens)
 
 from distil_codec import DistilCodec, demo_for_generate_audio_codes
 
-from distil_codec import DistilCodec, demo_for_generate_audio_codes
-
 codec_model_config_path='/path/to/distilcodec/model_config.json'
 codec_ckpt_path = '/path/to/distilcodec_ckpt'
 step=204000
