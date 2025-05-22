@@ -201,10 +201,19 @@ if you don't use slurm, then you can execute the training:
 sh ./path/to/train.sh
 ```
 
+## References
+The overall training pipeline of DistilCodec draws inspiration from AcademiCodec, while its encoder and decoder design is adapted from fish-speech. The Vector Quantization (VQ) component implements GRFVQ using the vector-quantize-pytorch framework. These three exceptional works have provided invaluable assistance in our implementation of DistilCodec. Below are links to these reference projects:
+
+[1][vector-quantize-pytorch](https://github.com/lucidrains/vector-quantize-pytorch)
+
+[2][AcademiCodec](https://github.com/moewiee/hificodec)
+
+[3][fish-speech](https://github.com/fishaudio/fish-speech)
+
 
 ## Citation
 
-If this code contributes to your research, please cite our work, UniTTS:
+If you find this code useful in your research, please cite our work:
 
 ```
 @article{wang2025unitts,
