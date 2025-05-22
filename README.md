@@ -26,7 +26,8 @@ Distribution of DistilCodec training data is shown in below table:
 |-----------------------------|--------------------------|
 | Chinese Audiobook            | 38000                    |
 | Chinese Common Audio         | 20000                    |
-| English Audio               | 40000                    |
+| English Audiobook            | 10000                    |
+| English Speech               | 30000                    |
 | Music                       | 2000                     |
 | **Total**                   | **100000**               |
 
