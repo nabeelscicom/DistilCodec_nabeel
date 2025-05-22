@@ -35,10 +35,12 @@ Distribution of DistilCodec training data is shown in below table:
 We have developed a novel distillation approach termed DMS (**D**istilling **M**ulti-Codebook NAC to **S**ingle-Codebook NAC) by enabling the Student NAC to inherit encoder and decoder parameters from the Teacher NAC. Based on DMS, we trained DistilCodec using universal audio datasets as training data, achieving a single codebook with a codebook size of 32,768 while maintaining codebook utilization approaching 100\%. Simultaneously, the DMS algorithm enables the dimension of the distilled Student NAC Codebook to be scaled beyond 2048. Leveraging this capability, we configured the codebook dimension to 3584, aligning with the word embedding dimension of QWen2.5-7B (3584), so we subsequently leveraged DistilCodec's codebook to initialize the audio embedding layer in [UniTTS](https://github.com/IDEA-Emdoor-Lab/UniTTS). Here is the psuedo code of DMS:
 #### Algorithm DMS: Distilling Multi-Codebook NAC to Single-Codebook NAC via parameter inheritance
 1. **Step 1:** Initializing *Teacher codec*:
-   ![Step1 formula](./data/step1_formula.png)
+
+   <img src="./data/step1_formula.png" alt="Step1 formula" style="width: 50%; height: auto;" />
 2. **Step 2:** *Teacher codec* training with LSGAN
 3. **Step 3:** Initializing *Student codec*:
-   ![Step3 formula](./data/step3_formula.png)
+
+   <img src="./data/step3_formula.png" alt="Step3 formula" style="width: 50%; height: auto;" />
 4. **Step 4:** *Student codec* training with DLF
 5. **Output:** DistilCodec = Student_codec
 
