@@ -15,8 +15,7 @@ The Joint Laboratory of International Digital Economy Academy (IDEA) and Emdoor,
 The foundational network architecture of DistilCodec adopts an Encoder-VQ-Decoder framework
 similar to that proposed in Soundstream. The encoder employs a ConvNeXt-V2 structure,
 while the vector quantization module implements the GRFVQ scheme. The decoder
-employs a ConvTranspose1d based architectural configuration similar to HiFiGAN. Detailed
-network specifications and layer configurations are provided in Appendix A.1 The training methodol-
+employs a ConvTranspose1d based architectural configuration similar to HiFiGAN. The training methodol-
 ogy of DistilCodec follows a similar approach to HiFiGAN, incorporating three types of
 discriminators: Multi-Period Discriminator (MPD), Multi-Scale Discriminator (MSD), and Multi-
 STFT Discriminator (MSFTFD). Here is the architecture of Distilcodec:
