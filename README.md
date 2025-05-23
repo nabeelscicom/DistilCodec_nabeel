@@ -1,9 +1,22 @@
-# DistilCodec
-The Joint Laboratory of International Digital Economy Academy (IDEA) and Emdoor, in collaboration with Emdoor Information Technology Co., Ltd., has launched DistilCodec - A Single-Codebook Neural Audio Codec (NAC) with 32768 codes trained on uniersal audio.
-
-
-[![arXiv](https://img.shields.io/badge/arXiv-Paper-<COLOR>.svg)](https://arxiv.org/abs/2408.16532)
-[![model](https://img.shields.io/badge/%F0%9F%A4%97%20DistilCodec-Models-blue)](https://huggingface.co/IDEA-Emdoor/DistilCodec-v1.0)
+<div align="center">
+    <h1>
+    DistilCodec
+    </h1>
+    <p>
+    <b><em>DistilCodec: A Single Codebook Audio Codec For Universal Audio</em></b>
+   </p>
+    <p>
+    </p>
+    </p>
+    <a href="https" style="color:red">Paper </a> |  
+    <a href="https://huggingface.co/IDEA-Emdoor/DistilCodec-v1.0" style="color:#FFD700">Hugging Face Model</a>
+    <a href="https://github.com/IDEA-Emdoor-Lab/DistilCodec" style="color:gray">Code</a>
+     <p>
+        <img src="./data/figures/idea_logo.png" alt="Institution 1" style="width: 200px; height: 60px;">
+        <img src="./data/figures/yidao_logo.png" alt="Institution 2" style="width: 200px; height: 60px;">
+        <img src="./data/figures/yijiayiban.png" alt="Institution 3" style="width: 200px; height: 60px;">
+    </p>
+</div>
 
 
 # 🔥 News
@@ -12,14 +25,14 @@ The Joint Laboratory of International Digital Economy Academy (IDEA) and Emdoor,
 - *2025.05.22*: We release UniTTS and DistilCodec on [arxiv](https://arxiv.org/abs/2408.16532).
 
 ## Introduction of DistilCodec
-The foundational network architecture of DistilCodec adopts an Encoder-VQ-Decoder framework
+The Joint Laboratory of International Digital Economy Academy (IDEA) and Emdoor, in collaboration with Emdoor Information Technology Co., Ltd., has launched DistilCodec - A Single-Codebook Neural Audio Codec (NAC) with 32768 codes trained on uniersal audio. The foundational network architecture of DistilCodec adopts an Encoder-VQ-Decoder framework
 similar to that proposed in Soundstream. The encoder employs a ConvNeXt-V2 structure,
 while the vector quantization module implements the GRFVQ scheme. The decoder
 employs a ConvTranspose1d based architectural configuration similar to HiFiGAN. The training methodol-
 ogy of DistilCodec follows a similar approach to HiFiGAN, incorporating three types of
 discriminators: Multi-Period Discriminator (MPD), Multi-Scale Discriminator (MSD), and Multi-
 STFT Discriminator (MSFTFD). Here is the architecture of Distilcodec:
-![The Architecture of DistilCodec](./data/distilcodec_architecture.jpg)
+![The Architecture of DistilCodec](./data/figures/distilcodec_architecture.jpg)
 Distribution of DistilCodec training data is shown in below table:
 | **Data Category**           | **Data Size (in hours)** |
 |-----------------------------|--------------------------|
@@ -35,11 +48,11 @@ We have developed a novel distillation approach termed DMS (**D**istilling **M**
 #### Algorithm DMS: Distilling Multi-Codebook NAC to Single-Codebook NAC via parameter inheritance
 1. **Step 1:** Initializing *Teacher codec*:
 
-   <img src="./data/step1_formula.png" alt="Step1 formula" style="width: 50%; height: auto;" />
+   <img src="./data/figures/step1_formula.png" alt="Step1 formula" style="width: 50%; height: auto;" />
 2. **Step 2:** *Teacher codec* training with LSGAN
 3. **Step 3:** Initializing *Student codec*:
 
-   <img src="./data/step3_formula.png" alt="Step3 formula" style="width: 50%; height: auto;" />
+   <img src="./data/figures/step3_formula.png" alt="Step3 formula" style="width: 50%; height: auto;" />
 4. **Step 4:** *Student codec* training with DLF
 5. **Output:** DistilCodec = Student_codec
 
@@ -96,10 +109,10 @@ For additional comparative audio examples, please use our MOS evaluation tool:
 python codec_evaluation_gradio.py
 ```
 Upon launching the system, the interface displays the following components: Model1 represents the original audio, while Model2 corresponds to the audio reconstructed by DistilCodec.
-![DistilCodec MOS Tool](./data/distilcodec_mos.png)
+![DistilCodec MOS Tool](./data/figures/distilcodec_mos.png)
 
 If you want to perform a benchmark evaluation on LibriSpeech-test, you can follow these steps:
-- *Eval Config*: Modify the values of parameters in [Eval Cofig](./scripts/examples/evaluation/train_config.json), such as filelist_path, save_dir.
+- *Eval Config*: Modify the values of parameters in [Eval Cofig](./scripts/examples/evaluation/libri_test_clean.json), such as filelist_path, save_dir.
 - *Eval Shell*: Modify the values of parameters in [Eval Shell](./scripts/examples/evaluation/libri_test_clean_eval.sh).
 - *Execute Shell*: Run the eval shell.
 
