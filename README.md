@@ -22,7 +22,7 @@
 # 🔥 News
 - *2025.05.27*: We release DistilCodec-v1.0 checkpoint on [huggingface](https://huggingface.co/IDEA-Emdoor/DistilCodec-v1.0).
 - *2025.05.26*: We release the code of DistilCodec-v1.0, including training and inference.
-- *2025.05.22*: We release UniTTS and DistilCodec on [arxiv](https://arxiv.org/abs/2408.16532).
+- *2025.05.24*: We release UniTTS and DistilCodec on [arxiv](https://arxiv.org/abs/2408.16532).
 
 ## Introduction of DistilCodec
 The Joint Laboratory of International Digital Economy Academy (IDEA) and Emdoor, in collaboration with Emdoor Information Technology Co., Ltd., and Shenzhen Yijiayiban Information Technology Co., Ltd, has launched DistilCodec - A Single-Codebook Neural Audio Codec (NAC) with 32768 codes trained on uniersal audio. The foundational network architecture of DistilCodec adopts an Encoder-VQ-Decoder framework
