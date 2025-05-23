@@ -25,7 +25,7 @@
 - *2025.05.22*: We release UniTTS and DistilCodec on [arxiv](https://arxiv.org/abs/2408.16532).
 
 ## Introduction of DistilCodec
-The Joint Laboratory of International Digital Economy Academy (IDEA) and Emdoor, in collaboration with Emdoor Information Technology Co., Ltd., has launched DistilCodec - A Single-Codebook Neural Audio Codec (NAC) with 32768 codes trained on uniersal audio. The foundational network architecture of DistilCodec adopts an Encoder-VQ-Decoder framework
+The Joint Laboratory of International Digital Economy Academy (IDEA) and Emdoor, in collaboration with Emdoor Information Technology Co., Ltd., and Shenzhen Yijiayiban Information Technology Co., Ltd, has launched DistilCodec - A Single-Codebook Neural Audio Codec (NAC) with 32768 codes trained on uniersal audio. The foundational network architecture of DistilCodec adopts an Encoder-VQ-Decoder framework
 similar to that proposed in Soundstream. The encoder employs a ConvNeXt-V2 structure,
 while the vector quantization module implements the GRFVQ scheme. The decoder
 employs a ConvTranspose1d based architectural configuration similar to HiFiGAN. The training methodol-
