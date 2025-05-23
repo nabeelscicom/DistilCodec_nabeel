@@ -130,7 +130,7 @@ pip install requirements.txt
 
 ## Inference of DistilCodec
 
-### Part1:  Reconstruct audio from raw audio
+### Part1:  Generate audio tokens using DistilCodec
 
 ```python
 
@@ -158,7 +158,7 @@ print(audio_tokens)
 
 ```
 
-### Part2: Reconstruct audio from raw audio
+### Part2: Reconstruct audio with audio tokens generated from DistilCodec
 ```python
 
 from distil_codec import DistilCodec, demo_for_generate_audio_codes
