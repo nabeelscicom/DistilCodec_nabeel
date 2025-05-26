@@ -242,7 +242,7 @@ The overall training pipeline of DistilCodec draws inspiration from AcademiCodec
 
 ## Citation
 
-If you find this code useful in your research, please cite our work:
+If you find our work useful in your research, please cite our work:
 
 ```
 @misc{wang2025unittsendtoendttsdecoupling,
