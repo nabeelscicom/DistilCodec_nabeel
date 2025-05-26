@@ -245,10 +245,30 @@ The overall training pipeline of DistilCodec draws inspiration from AcademiCodec
 If you find this code useful in your research, please cite our work:
 
 ```
-@article{wang2025unitts,
-  title={UniTTS: An end-to-end TTS system without decoupling of acoustic and semantic information},
-  author={Rui Wang,Qianguo Sun,Tianrong Chen,Zhiyun Zeng,Junlong Wu,Jiaxing Zhang},
-  journal={arXiv preprint arXiv:2408.16532},
-  year={2025}
+@misc{wang2025unittsendtoendttsdecoupling,
+      title={UniTTS: An end-to-end TTS system without decoupling of acoustic and semantic information}, 
+      author={Rui Wang and Qianguo Sun and Tianrong Chen and Zhiyun Zeng and Junlong Wu and Jiaxing Zhang},
+      year={2025},
+      eprint={2505.17426},
+      archivePrefix={arXiv},
+      primaryClass={cs.SD},
+      url={https://arxiv.org/abs/2505.17426}, 
 }
 ```
+
+
+## Disclaimer
+
+DistilCodec provides the capability of universal audio discretion only for academic research purposes. We encourage the community to uphold safety and ethical principles in AI research and applications.
+
+Important Notes:
+
+- Compliance with the model's open-source license is mandatory.
+
+- Unauthorized voice replication applications are strictly prohibited.
+
+- Developers bear no responsibility for any misuse of this model.
+
+
+## License
+<a href="https://arxiv.org/abs/2505.17426">UniTTS: An end-to-end TTS system without decoupling of acoustic and semantic information</a> © 2025 by <a href="https://creativecommons.org">Rui Wang, Qianguo Sun, Tianrong Chen, Zhiyun Zeng, Junlong Wu, Jiaxing Zhang</a> is licensed under <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/">CC BY-NC-ND 4.0</a><img src="https://mirrors.creativecommons.org/presskit/icons/cc.svg" style="max-width: 1em;max-height:1em;margin-left: .2em;"><img src="https://mirrors.creativecommons.org/presskit/icons/by.svg" style="max-width: 1em;max-height:1em;margin-left: .2em;"><img src="https://mirrors.creativecommons.org/presskit/icons/nc.svg" style="max-width: 1em;max-height:1em;margin-left: .2em;"><img src="https://mirrors.creativecommons.org/presskit/icons/nd.svg" style="max-width: 1em;max-height:1em;margin-left: .2em;">
