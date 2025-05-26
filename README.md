@@ -24,7 +24,7 @@
 # 🔥 News
 - *2025.05.26*: We release DistilCodec-v1.0 checkpoint on [huggingface](https://huggingface.co/IDEA-Emdoor/DistilCodec-v1.0).
 - *2025.05.26*: The paper is available on [arxiv](https://arxiv.org/abs/2505.17426).
-- *2025.05.23*: We submitt paper tp arxiv.
+- *2025.05.23*: We submitt paper to arxiv.
 
 ## Introduction of DistilCodec
 The Joint Laboratory of International Digital Economy Academy (IDEA) and Emdoor, in collaboration with Emdoor Information Technology Co., Ltd., and Shenzhen Yijiayiban Information Technology Co., Ltd, has launched DistilCodec - A Single-Codebook Neural Audio Codec (NAC) with 32768 codes trained on uniersal audio. The foundational network architecture of DistilCodec adopts an Encoder-VQ-Decoder framework
