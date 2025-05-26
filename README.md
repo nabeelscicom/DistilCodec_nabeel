@@ -204,7 +204,7 @@ codec.save_wav(
 ## Available DistilCodec models
 |Model Version| Huggingface |  Corpus  |  Token/s  | Domain |
 |-----------------------|---------|---------------|---------------|-----------------------------------|
-| DistilCodec-v1.0 | [HF](https://huggingface.co/IDEA-Emdoor/DistilCodec-v1.0) | Universal Audio | 93 |  Audiobook、Speech、Audio Effects |
+| DistilCodec-v1.0 | [HuggingFace](https://huggingface.co/IDEA-Emdoor/DistilCodec-v1.0) | Universal Audio | 93 | Universal Audio |
 
 
 ## Training of DistilCodec
