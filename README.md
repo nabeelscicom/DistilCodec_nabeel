@@ -9,7 +9,7 @@
     </p>
     </p>
     <a href="https://arxiv.org/abs/2505.17426" style="color:red">Paper </a> |  
-    <a href="https://huggingface.co/IDEA-Emdoor/DistilCodec-v1.0" style="color:#FFD700">HuggingFace Model</a>
+    <a href="https://huggingface.co/IDEA-Emdoor/DistilCodec-v1.0" style="color:#FFD700">HuggingFace Model</a> |
     <a href="https://github.com/IDEA-Emdoor-Lab/DistilCodec" style="color:gray">Code</a>
      <p>
         <img src="./data/figures/idea_logo.png" alt="Institution 1" style="width: 200px; height: 60px;">
