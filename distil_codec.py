@@ -619,31 +619,33 @@ class DistilCodec(nn.Module):
         return gen_audio_pathes
     
     
-def load_and_resample_audio(file_path, target_sr, mono=True):
-    """Loading audio(mp3, wav) and resampling to target sampling rate.
-
-    Args:
-        file_path (_type_): Audio path.
-        target_sr (_type_): Target sampling rate.
-        mono (bool, optional): Wheather converting multi-channel audio into mono channel. Defaults to True.
-        limited (_type_, optional): Weather chunking audio. Defaults to None.
-
-    Returns:
-        _type_: _description_
+def load_and_resample_audio(file_path, target_sr, mono=True, limited=None):
     """
-    
-    # Loading audio.
+    读取说话人语音文件，修改采样率，并合并多声道（如果需要）。
+
+    :param file_path: 说话人语音文件的路径
+    :param target_sr: 目标采样率
+    :param mono: 是否将说话人语音转换为单声道（True）或保持多声道（False）
+    :return: 处理后的说话人语音信号和目标采样率
+    """
+    # 读取说话人语音文件
     y, orig_sr = librosa.load(file_path, sr=None, mono=False)
     audio_duration = len(y) / orig_sr
+    # 如果音频长度超过最大时长，随机截取一段音频
+    if limited is not None and audio_duration > limited and len(y) - int(orig_sr * limited) > 1000:
+        start = np.random.randint(0, len(y) - int(orig_sr * limited))
+        y = y[start:start + int(orig_sr * limited)]
+        # y = y[:int(limited * orig_sr)]
 
-    # Resampling to target sampling rate.
+    # 修改采样率
     y_resampled = librosa.resample(y, orig_sr=orig_sr, target_sr=target_sr)
 
-    # Converting multi-channel to mono -channel.
+    # 合并多声道（如果需要）
     if mono and len(y_resampled.shape) > 1:
-        y_resampled = np.mean(y_resampled, axis=1, keepdims=True)
+        y_resampled = np.mean(y_resampled, axis=0, keepdims=True)
     if len(y_resampled.shape) == 1:
         y_resampled = np.expand_dims(y_resampled, axis=0)
+    print(y_resampled.shape)
 
     return y_resampled, target_sr, audio_duration
 
@@ -685,7 +687,7 @@ def demo_for_generate_audio_codes(codec: DistilCodec, audio_path, target_sr=2400
         List of Int: Audio tokens list.
     """
     
-    audio_tsr, _, _ = load_and_resample_audio(file_path=audio_path, target_sr=target_sr, limited=None)
+    audio_tsr, _, _ = load_and_resample_audio(file_path=audio_path, target_sr=target_sr)
     audio_tokens = decode_audio(codec, audio_tsr=audio_tsr, plus_offset=plus_llm_offset)
     
     return audio_tokens

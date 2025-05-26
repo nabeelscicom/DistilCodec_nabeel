@@ -30,8 +30,7 @@
 The Joint Laboratory of International Digital Economy Academy (IDEA) and Emdoor, in collaboration with Emdoor Information Technology Co., Ltd., and Shenzhen Yijiayiban Information Technology Co., Ltd, has launched DistilCodec - A Single-Codebook Neural Audio Codec (NAC) with 32768 codes trained on uniersal audio. The foundational network architecture of DistilCodec adopts an Encoder-VQ-Decoder framework
 similar to that proposed in Soundstream. The encoder employs a ConvNeXt-V2 structure,
 while the vector quantization module implements the GRFVQ scheme. The decoder
-employs a ConvTranspose1d based architectural configuration similar to HiFiGAN. The training methodol-
-ogy of DistilCodec follows a similar approach to HiFiGAN, incorporating three types of
+employs a ConvTranspose1d based architectural configuration similar to HiFiGAN. The training methodology of DistilCodec follows a similar approach to HiFiGAN, incorporating three types of
 discriminators: Multi-Period Discriminator (MPD), Multi-Scale Discriminator (MSD), and Multi-
 STFT Discriminator (MSFTFD). Here is the architecture of Distilcodec:
 ![The Architecture of DistilCodec](./data/figures/distilcodec_architecture.jpg)
