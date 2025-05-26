@@ -210,7 +210,7 @@ codec.save_wav(
 ## Training of DistilCodec
 
 ### Step1: Prepare train dataset
-Prepare audio segments like [Audio Examples for Traing](./data/training_data_demos/). The audio setting is shown in below table:
+Prepare audio segments like [Audio Examples for Traning](./data/training_data_demos/). The audio setting is shown in below table:
 | Duration(s) | Sampling Rate(Hz)| Audio Category |
 |-----------------------|---------------------|---------------|
 | 2s ~ 10s | 24000 | Universal audio (Speech, Audiobook, Audio Effects etc.) |
