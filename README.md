@@ -125,6 +125,7 @@ conda activate distilcodec
 ```
 -*Step2*: install requirements.
 ```bash
+pip install pip==23.1
 pip install requirements.txt
 ```
 
