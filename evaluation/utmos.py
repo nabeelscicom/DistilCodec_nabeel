@@ -226,11 +226,7 @@ class Projection(nn.Module):
         return self.output_dim
 
 
-utmos = UTMOSScore(device=torch.device('cuda', 0),
-                   ckpt_path='/cognitive_comp/wangrui/data/utmos/epoch=3-step=7459.ckpt')
-
-
-def compute_utmos(real2gen_pathes: list):
+def compute_utmos(real2gen_pathes: list, utmos: UTMOSScore):
     sr_16K = 16000
     real_utmos = []
     gen_utmos = []

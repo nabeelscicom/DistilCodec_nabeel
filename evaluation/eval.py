@@ -9,7 +9,7 @@ from evaluation.si_snr import compute_sisnr
 from evaluation.stoi import compute_stoi
 from evaluation.mcd import compute_mcd
 from evaluation.pesq import compute_pesq
-from evaluation.utmos import compute_utmos
+from evaluation.utmos import compute_utmos, UTMOSScore
 from evaluation.codebook_analysis import calc_codebook_ppl_usage, split_group_and_residual
 from models import get_validation_files
 
@@ -155,7 +155,10 @@ def evaluation(valid_config: str,
     print(f'STOI: {stoi_result}')
 
     # 评估UTMOS
-    utmos_result = compute_utmos(real2gen_pathes)
+    utmos_path = valid_config['utmos_path']
+    utmos = UTMOSScore(device=torch.device('cuda', 0),
+                       ckpt_path=utmos_path)
+    utmos_result = compute_utmos(real2gen_pathes, utmos)
     eval_results['UTMOS'] = utmos_result
     print(f'UTMOS: {utmos_result}')
     write_eval_result(eval_path, ckpt_step, eval_results, task_name=task_name)

@@ -6,6 +6,7 @@
     "libritts_test-clean_path": "/path/to/libritts/test-clean",
     "libritts_test-other_path": "/path/to/libritts/test-other",
     "audio_path": "/path/to/eval_result",
+    "utmos_path": "path/to/utmos_ckpt",
     "ckpt_steps": 204000,
     "n_valid_files": 1000,
     "only_calc_usage": false
