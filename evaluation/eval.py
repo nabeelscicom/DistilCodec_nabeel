@@ -61,7 +61,7 @@ def reconstruct_audio(valid_config: str,
     for batch in tqdm(batch_audio, desc='Audio reconstruction'):
         with torch.no_grad():
             quantized_ret, gen_time_lengths, _ = codec.encode(batch, enable_bfloat16)
-            print(quantized_ret.codes.size(), quantized_ret.codes.dtype,  quantized_ret.quantized.size())
+            # print(quantized_ret.codes.size(), quantized_ret.codes.dtype,  quantized_ret.quantized.size())
 
             # codec.quantizer.decode()
             code_per_codebook, ngroups, nresiduals = split_group_and_residual(quantized_ret.codes)
