@@ -101,11 +101,12 @@ pip3 install git+https://github.com/mesolitica/DistilCodec
 ### Part1:  Generate audio tokens using DistilCodec
 
 ```python
+# wget https://huggingface.co/IDEA-Emdoor/DistilCodec-v1.0/resolve/main/model_config.json
 # wget https://huggingface.co/IDEA-Emdoor/DistilCodec-v1.0/resolve/main/g_00204000
 
 from distilcodec import DistilCodec, demo_for_generate_audio_codes
 
-codec_model_config_path='configs/model_config.json'
+codec_model_config_path='model_config.json'
 codec_ckpt_path = 'g_00204000'
 
 codec = DistilCodec.from_pretrained(
