@@ -113,117 +113,53 @@ If you want to perform a benchmark evaluation on LibriSpeech-test, you can follo
 - *Execute Shell*: Run the eval shell.
 
 ## Installation of DistilCodec
--*Step1*: Create conda environment for DistilCodec.
-```bash
-conda create -n distilcodec python=3.10
-conda activate distilcodec
-```
--*Step2*: install requirements.
-```bash
-pip install pip==23.1
-pip install requirements.txt
-```
 
+```bash
+pip3 install git+https://github.com/mesolitica/DistilCodec
+```
 
 ## Inference of DistilCodec
 
 ### Part1:  Generate audio tokens using DistilCodec
 
 ```python
+# wget https://huggingface.co/IDEA-Emdoor/DistilCodec-v1.0/resolve/main/g_00204000
 
-from distil_codec import DistilCodec, demo_for_generate_audio_codes
+from distilcodec import DistilCodec, demo_for_generate_audio_codes
 
-codec_model_config_path='/path/to/distilcodec/model_config.json'
-codec_ckpt_path = '/path/to/distilcodec_ckpt'
-step=204000
+codec_model_config_path='configs/model_config.json'
+codec_ckpt_path = 'g_00204000'
 
 codec = DistilCodec.from_pretrained(
     config_path=codec_model_config_path,
     model_path=codec_ckpt_path,
-    load_steps=step,
     use_generator=True,
     is_debug=False).eval()
 
-audio_path = '/path/to/audio_file'
+audio_path = 'test.mp3'
 audio_tokens = demo_for_generate_audio_codes(
     codec, 
     audio_path, 
     target_sr=24000, 
-    plus_llm_offset=True # If this parameter set to True, then it will add LLM's vocabulary number to audio token, and DistilCodec's default vocabulary number is from QWen2.5-7B.
+    plus_llm_offset=False
 )
 print(audio_tokens)
-
 ```
 
 ### Part2: Reconstruct audio with audio tokens generated from DistilCodec
+
 ```python
-
-from distil_codec import DistilCodec, demo_for_generate_audio_codes
-
-codec_model_config_path='/path/to/distilcodec/model_config.json'
-codec_ckpt_path = '/path/to/distilcodec_ckpt'
-step=204000
-
-codec = DistilCodec.from_pretrained(
-    config_path=codec_model_config_path,
-    model_path=codec_ckpt_path,
-    load_steps=step,
-    use_generator=True,
-    is_debug=False).eval()
-
-audio_path = '/path/to/audio_file'
-audio_tokens = demo_for_generate_audio_codes(
-    codec, 
-    audio_path, 
-    target_sr=24000, 
-    plus_llm_offset=True # If this parameter set to True, then it will add LLM's vocabulary number to audio token, and DistilCodec's default vocabulary number is from QWen2.5-7B.
-)
-print(audio_tokens)
-
-# Generated audio save path, the path is f'{gen_audio_save_path}/{audio_name}.wav'
-gen_audio_save_path = '/path/to/audio_save_path'
-audio_name = 'audio_name'
 y_gen = codec.decode_from_codes(
     audio_tokens, 
-    minus_token_offset=True # if the 'plus_llm_offset' of method demo_for_generate_audio_codes is set to True, then minus_token_offset must be True.
+    minus_token_offset=False
 )
-codec.save_wav(
-    audio_gen_batch=y_gen, 
-    nhop_lengths=[y_gen.shape[-1]], 
-    save_path=gen_audio_save_path,
-    name_tag=audio_name
-)
-
 ```
 
 ## Available DistilCodec models
+
 |Model Version| Huggingface |  Corpus  |  Token/s  | Domain |
 |-----------------------|---------|---------------|---------------|-----------------------------------|
 | DistilCodec-v1.0 | [HuggingFace](https://huggingface.co/IDEA-Emdoor/DistilCodec-v1.0) | Universal Audio | 93 | Universal Audio |
-
-
-## Training of DistilCodec
-
-### Step1: Prepare train dataset
-Prepare audio segments like [Audio Examples for Traning](./data/training_data_demos/). The audio setting is shown in below table:
-| Duration(s) | Sampling Rate(Hz)| Audio Category |
-|-----------------------|---------------------|---------------|
-| 2s ~ 10s | 24000 | Universal audio (Speech, Audiobook, Audio Effects etc.) |
-
-### Step2: Modifying configuration files
-- *Train Config*: Modify the values of parameters in [Train Cofig](./scripts/examples/train/train_config.json), such as batch_size, filelist_path, save_dir.
-- *Model Config*: Modify the values of parameters in [Model Cofig](./scripts/examples/train/model_config.json).
-- *Train Shell*: Modify the values of parameters in [Train Shell](./scripts/examples/evaluation/common_eval.json).
-
-### Step3: Start training process
-Execute training shell if you can use slurm:
-```bash
-sbatch ./path/to/train.sh
-```
-if you don't use slurm, then you can execute the training:
-```bash
-sh ./path/to/train.sh
-```
 
 ## References
 The overall training pipeline of DistilCodec draws inspiration from AcademiCodec, while its encoder and decoder design is adapted from fish-speech. The Vector Quantization (VQ) component implements GRFVQ using the vector-quantize-pytorch framework. These three exceptional works have provided invaluable assistance in our implementation of DistilCodec. Below are links to these reference projects:
