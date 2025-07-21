@@ -8,3 +8,4 @@ nohup.out
 tmp
 g_00204000
 *.ipynb
+*egg-info
