@@ -597,15 +597,8 @@ class DistilCodec(nn.Module):
 
     def decode_from_codes_batch(self, codes_list: list, minus_token_offset: bool = True, enable_bfloat16: bool = False) -> list:
         """
-        Fixed 3D batching version - uses proper tensor dimensions for conv_transpose1d
-        
-        Args:
-            codes_list: List of code sequences [[123,456,789], [012,345,678], ...]
-            minus_token_offset: Same as original decode_from_codes
-            enable_bfloat16: Same as original decode_from_codes
-        
-        Returns:
-            List of decoded audio tensors [tensor1, tensor2, tensor3, ...]
+        FINAL CORRECT VERSION - 3D tensor as required by conv_transpose1d
+        Input shape: [batch_size, channels, sequence_length] = 3D
         """
         if not codes_list:
             return []
@@ -625,27 +618,24 @@ class DistilCodec(nn.Module):
         max_length = max(len(codes) for codes in codes_list)
         batch_size = len(codes_list)
         
-        # CRITICAL FIX: Create 3D tensor instead of 5D
-        # conv_transpose1d expects [batch_size, channels, sequence_length] = 3D
-        # Original single: [1, 1, seq_len, 1] was actually [1, 1*1, seq_len] after unsqueeze operations
+        # Create 3D tensor: [batch_size, channels, sequence_length]
+        # This is what conv_transpose1d expects for batched input
         batched_codes = torch.zeros(batch_size, 1, max_length, dtype=torch.int64).cuda()
         
-        # Fill the batch tensor - no extra unsqueeze operations
+        # Fill the batch tensor
         for i, codes in enumerate(codes_list):
             codes_tensor = torch.tensor(codes, dtype=torch.int64)
             batched_codes[i, 0, :len(codes)] = codes_tensor
         
-        # Process entire batch with the correct 3D tensor shape
+        # Process entire batch
         with torch.no_grad():
             with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=enable_bfloat16):
-                # Now batched_codes has shape [batch_size, 1, max_length] - proper 3D format
                 re_features = self.quantizer.decode(indices=batched_codes)
                 y_g_hat_batch = self.generator(re_features)
         
         # Split batch results back to individual tensors
         results = []
         for i in range(batch_size):
-            # Extract individual result and maintain expected output format
             individual_result = y_g_hat_batch[i:i+1].detach()
             results.append(individual_result)
         
