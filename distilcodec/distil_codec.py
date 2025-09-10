@@ -592,7 +592,68 @@ class DistilCodec(nn.Module):
                 y_g_hat = self.generator(re_features)
 
         return y_g_hat.detach()
-    
+    # Add this method to your DistilCodec class in distil_codec.py
+    # Insert it right after your existing decode_from_codes method (around line 400+)
+
+    def decode_from_codes_batch(self, codes_list: list, minus_token_offset: bool = True, enable_bfloat16: bool = False) -> list:
+        """
+        Batch version of decode_from_codes - processes multiple sequences at once
+        
+        Args:
+            codes_list: List of code sequences [[123,456,789], [012,345,678], ...]
+            minus_token_offset: Same as original decode_from_codes
+            enable_bfloat16: Same as original decode_from_codes
+        
+        Returns:
+            List of decoded audio tensors [tensor1, tensor2, tensor3, ...]
+        """
+        if not codes_list:
+            return []
+        
+        # Step 1: Process token offset for all sequences (same as original)
+        if minus_token_offset:
+            processed_codes_list = []
+            for codes in codes_list:
+                # Debug check (same as your original)
+                for c in codes:
+                    if c - self.tokens_id_offset < 0:
+                        print(f'c is :{c}', flush=True)
+                
+                # Subtract offset for entire sequence
+                processed_codes = [c - self.tokens_id_offset for c in codes]
+                processed_codes_list.append(processed_codes)
+            codes_list = processed_codes_list
+        
+        # Step 2: Handle variable sequence lengths with padding
+        max_length = max(len(codes) for codes in codes_list)
+        batch_size = len(codes_list)
+        
+        # Step 3: Create batched tensor (same shape structure as your original)
+        # Your original: (1, 1, seq_len, 1) 
+        # Batched version: (batch_size, 1, 1, max_seq_len, 1)
+        batched_codes = torch.zeros(batch_size, 1, 1, max_length, 1, dtype=torch.int64).cuda()
+        
+        # Fill the batch tensor
+        for i, codes in enumerate(codes_list):
+            codes_tensor = torch.tensor(codes, dtype=torch.int64)
+            # Place each sequence in the batch, pad shorter sequences with zeros
+            batched_codes[i, 0, 0, :len(codes), 0] = codes_tensor
+        
+        # Step 4: Process entire batch with one GPU call (same logic as original)
+        with torch.no_grad():
+            with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=enable_bfloat16):
+                # This is the critical optimization: process ALL sequences at once
+                re_features = self.quantizer.decode(indices=batched_codes)
+                y_g_hat_batch = self.generator(re_features)
+        
+        # Step 5: Split batch results back to individual tensors
+        results = []
+        for i in range(batch_size):
+            # Extract each individual result from the batch
+            individual_result = y_g_hat_batch[i:i+1].detach()  # Keep batch dimension
+            results.append(individual_result)
+        
+        return results    
     def save_wav(self, audio_gen_batch: torch.Tensor, nhop_lengths, audio_names=None, save_path='./log', name_tag='default'):
         if audio_names is not None and len(audio_names) == len(nhop_lengths):
             use_org_name = True
