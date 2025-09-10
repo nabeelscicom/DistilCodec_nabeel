@@ -597,7 +597,7 @@ class DistilCodec(nn.Module):
 
     def decode_from_codes_batch(self, codes_list: list, minus_token_offset: bool = True, enable_bfloat16: bool = False) -> list:
         """
-        Batch version of decode_from_codes - processes multiple sequences at once
+        Fixed 3D batching version - uses proper tensor dimensions for conv_transpose1d
         
         Args:
             codes_list: List of code sequences [[123,456,789], [012,345,678], ...]
@@ -610,50 +610,46 @@ class DistilCodec(nn.Module):
         if not codes_list:
             return []
         
-        # Step 1: Process token offset for all sequences (same as original)
+        # Process token offset for all sequences
         if minus_token_offset:
             processed_codes_list = []
             for codes in codes_list:
-                # Debug check (same as your original)
                 for c in codes:
                     if c - self.tokens_id_offset < 0:
                         print(f'c is :{c}', flush=True)
-                
-                # Subtract offset for entire sequence
                 processed_codes = [c - self.tokens_id_offset for c in codes]
                 processed_codes_list.append(processed_codes)
             codes_list = processed_codes_list
         
-        # Step 2: Handle variable sequence lengths with padding
+        # Handle variable sequence lengths with padding
         max_length = max(len(codes) for codes in codes_list)
         batch_size = len(codes_list)
         
-        # Step 3: Create batched tensor (same shape structure as your original)
-        # Your original: (1, 1, seq_len, 1) 
-        # Batched version: (batch_size, 1, 1, max_seq_len, 1)
-        batched_codes = torch.zeros(batch_size, 1, 1, max_length, 1, dtype=torch.int64).cuda()
+        # CRITICAL FIX: Create 3D tensor instead of 5D
+        # conv_transpose1d expects [batch_size, channels, sequence_length] = 3D
+        # Original single: [1, 1, seq_len, 1] was actually [1, 1*1, seq_len] after unsqueeze operations
+        batched_codes = torch.zeros(batch_size, 1, max_length, dtype=torch.int64).cuda()
         
-        # Fill the batch tensor
+        # Fill the batch tensor - no extra unsqueeze operations
         for i, codes in enumerate(codes_list):
             codes_tensor = torch.tensor(codes, dtype=torch.int64)
-            # Place each sequence in the batch, pad shorter sequences with zeros
-            batched_codes[i, 0, 0, :len(codes), 0] = codes_tensor
+            batched_codes[i, 0, :len(codes)] = codes_tensor
         
-        # Step 4: Process entire batch with one GPU call (same logic as original)
+        # Process entire batch with the correct 3D tensor shape
         with torch.no_grad():
             with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=enable_bfloat16):
-                # This is the critical optimization: process ALL sequences at once
+                # Now batched_codes has shape [batch_size, 1, max_length] - proper 3D format
                 re_features = self.quantizer.decode(indices=batched_codes)
                 y_g_hat_batch = self.generator(re_features)
         
-        # Step 5: Split batch results back to individual tensors
+        # Split batch results back to individual tensors
         results = []
         for i in range(batch_size):
-            # Extract each individual result from the batch
-            individual_result = y_g_hat_batch[i:i+1].detach()  # Keep batch dimension
+            # Extract individual result and maintain expected output format
+            individual_result = y_g_hat_batch[i:i+1].detach()
             results.append(individual_result)
         
-        return results    
+        return results
     def save_wav(self, audio_gen_batch: torch.Tensor, nhop_lengths, audio_names=None, save_path='./log', name_tag='default'):
         if audio_names is not None and len(audio_names) == len(nhop_lengths):
             use_org_name = True
@@ -670,7 +666,7 @@ class DistilCodec(nn.Module):
             
         return gen_audio_pathes
     
-    
+    #test
 def load_and_resample_audio(file_path, target_sr, mono=True, limited=None):
     """
     读取说话人语音文件，修改采样率，并合并多声道（如果需要）。
