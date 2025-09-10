@@ -597,8 +597,8 @@ class DistilCodec(nn.Module):
 
     def decode_from_codes_batch(self, codes_list: list, minus_token_offset: bool = True, enable_bfloat16: bool = False) -> list:
         """
-        FINAL CORRECT VERSION - 3D tensor as required by conv_transpose1d
-        Input shape: [batch_size, channels, sequence_length] = 3D
+        CORRECTED VERSION - 4D tensor to match single decode method
+        Input shape: [batch_size, channels, sequence_length, 1] = 4D (matching single decode)
         """
         if not codes_list:
             return []
@@ -607,9 +607,6 @@ class DistilCodec(nn.Module):
         if minus_token_offset:
             processed_codes_list = []
             for codes in codes_list:
-                for c in codes:
-                    if c - self.tokens_id_offset < 0:
-                        print(f'c is :{c}', flush=True)
                 processed_codes = [c - self.tokens_id_offset for c in codes]
                 processed_codes_list.append(processed_codes)
             codes_list = processed_codes_list
@@ -618,14 +615,14 @@ class DistilCodec(nn.Module):
         max_length = max(len(codes) for codes in codes_list)
         batch_size = len(codes_list)
         
-        # Create 3D tensor: [batch_size, channels, sequence_length]
-        # This is what conv_transpose1d expects for batched input
-        batched_codes = torch.zeros(batch_size, 1, max_length, dtype=torch.int64).cuda()
+        # Create 4D tensor: [batch_size, channels, sequence_length, 1]
+        # This matches the single decode method format exactly
+        batched_codes = torch.zeros(batch_size, 1, max_length, 1, dtype=torch.int64).cuda()
         
         # Fill the batch tensor
         for i, codes in enumerate(codes_list):
             codes_tensor = torch.tensor(codes, dtype=torch.int64)
-            batched_codes[i, 0, :len(codes)] = codes_tensor
+            batched_codes[i, 0, :len(codes), 0] = codes_tensor
         
         # Process entire batch
         with torch.no_grad():
